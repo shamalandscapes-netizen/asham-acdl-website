@@ -1,5 +1,5 @@
 // app/auth/callback/route.ts
-import { createServer as createClient } from '@/lib/supabase/server'; // Alias it here
+import { createClient } from '@/lib/supabase/server'; // Import createClient directly
 import { NextResponse } from 'next/server';
 
 export async function GET(request: Request) {
@@ -8,7 +8,7 @@ export async function GET(request: Request) {
   const next = searchParams.get('next') || searchParams.get('redirect') || '/dashboard';
 
   if (code) {
-    const supabase = await createClient(); // This now refers to createServer()
+    const supabase = createClient(); // No await needed - createClient() is synchronous
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     
     if (!error) {
