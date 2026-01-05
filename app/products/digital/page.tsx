@@ -31,18 +31,27 @@ export default function DigitalProductsPage() {
 
   useEffect(() => {
     async function fetchDigitalProducts() {
-      // Fetch only DIGITAL products
-      // We check for type 'digital' OR category 'plans' to be safe
+      // Fetch only DIGITAL products based on is_digital field
       const { data, error } = await supabase
         .from('products')
         .select('*')
-        .or('type.eq.digital,category.ilike.%plan%,category.ilike.%blueprint%')
+        .eq('is_digital', true) // Use is_digital field instead of type
         .order('created_at', { ascending: false });
 
       if (error) {
         console.error('Error fetching digital products:', error);
-      } else {
-        setProducts(data as DigitalProduct[] || []);
+      } else if (data) {
+        // Transform database data to match DigitalProduct interface
+        const digitalProducts: DigitalProduct[] = data.map(product => ({
+          id: product.id,
+          name: product.name,
+          description: product.description || '',
+          price: Number(product.price),
+          category: product.category || '',
+          type: 'digital' as const,
+          image_url: product.image_url || '',
+        }));
+        setProducts(digitalProducts);
       }
       setLoading(false);
     }
@@ -171,7 +180,11 @@ export default function DigitalProductsPage() {
                         KES {product.price.toLocaleString()}
                       </span>
                     </div>
-                    <button className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-gray-600 group-hover:bg-[#06392F] group-hover:text-white transition-colors">
+                    <button 
+                      type="button" 
+                      title="Download this plan"
+                      className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-gray-600 group-hover:bg-[#06392F] group-hover:text-white transition-colors"
+                    >
                       <Download size={18} />
                     </button>
                   </div>
