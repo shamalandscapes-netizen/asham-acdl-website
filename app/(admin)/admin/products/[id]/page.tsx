@@ -62,8 +62,8 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
           category: data.category || '',
           // Convert is_digital boolean to type string
           type: data.is_digital ? 'digital' : 'physical',
-          // Check if stock exists in the data, otherwise default to 0
-          stock: data.stock !== undefined ? Number(data.stock) : (data.is_digital ? 0 : 0),
+          // Stock field doesn't exist in DB, so always default to 0
+          stock: 0, // Default value since stock doesn't exist in your database
           image_url: data.image_url || '',
           file_path: data.file_path || '',
           is_digital: data.is_digital || false,
@@ -84,19 +84,27 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
     setSaving(true);
 
     try {
+      // Only include fields that exist in your database
+      const updateData: any = {
+        name: formData.name,
+        description: formData.description,
+        price: Number(formData.price),
+        category: formData.category,
+        // Convert type back to is_digital for database
+        is_digital: formData.type === 'digital',
+        image_url: formData.image_url,
+      };
+
+      // Only add stock to update if you want to add it to your database schema
+      // For now, we'll skip it since it doesn't exist
+      // If you want to add stock to your database, you'll need to:
+      // 1. Run a migration to add stock column
+      // 2. Then uncomment this:
+      // updateData.stock = formData.type === 'physical' ? Number(formData.stock) : 0;
+
       const { error } = await supabase
         .from('products')
-        .update({
-          name: formData.name,
-          description: formData.description,
-          price: Number(formData.price),
-          category: formData.category,
-          // Convert type back to is_digital for database
-          is_digital: formData.type === 'digital',
-          // Only update stock if it's a physical product
-          stock: formData.type === 'physical' ? Number(formData.stock) : 0,
-          image_url: formData.image_url,
-        })
+        .update(updateData)
         .eq('id', formData.id);
 
       if (error) throw error;
