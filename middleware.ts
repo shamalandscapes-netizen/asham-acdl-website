@@ -1,0 +1,86 @@
+﻿import { createServerClient } from '@supabase/ssr'
+import { NextResponse } from 'next/server'
+import type { NextRequest } from 'next/server'
+
+export async function middleware(request: NextRequest) {
+  const path = request.nextUrl.pathname
+
+  // --- 1. SKIP API ROUTES IMMEDIATELY ---
+  if (path.startsWith('/api')) {
+    return NextResponse.next()
+  }
+
+  let response = NextResponse.next({
+    request: {
+      headers: request.headers,
+    },
+  })
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() { return request.cookies.getAll() },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
+          response = NextResponse.next({
+            request: { headers: request.headers },
+          })
+          cookiesToSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options))
+        },
+      },
+    }
+  )
+
+  const { data: { user } } = await supabase.auth.getUser()
+
+  const isDashboardRoute = path.startsWith('/dashboard')
+  const isAdminRoute = path.startsWith('/admin')
+  const isAuthRoute = ['/login', '/register'].includes(path)
+
+  // 2. Handle Unauthenticated Users
+  if ((isDashboardRoute || isAdminRoute) && !user) {
+    const redirectUrl = new URL('/login', request.url)
+    redirectUrl.searchParams.set('redirect', path)
+    return NextResponse.redirect(redirectUrl)
+  }
+
+  // 3. Handle Authenticated Users
+  if (user) {
+    if (isAdminRoute || isAuthRoute) {
+      const { data: profile } = await supabase
+        .from('users')
+        .select('role')
+        .eq('id', user.id)
+        .maybeSingle()
+      
+      const userRole = profile?.role || 'customer'
+      const adminRoles = ['super_admin', 'admin', 'staff', 'accountant', 'it_admin']
+      const isAdmin = adminRoles.includes(userRole)
+
+      if (isAdminRoute && !isAdmin) {
+        return NextResponse.redirect(new URL('/dashboard', request.url))
+      }
+
+      if (isAuthRoute) {
+        return NextResponse.redirect(new URL(isAdmin ? '/admin' : '/dashboard', request.url))
+      }
+    }
+  }
+
+  return response
+}
+
+export const config = {
+  matcher: [
+    /*
+     * Match all request paths except for the ones starting with:
+     * - api (API routes)
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     */
+    '/((?!api/mpesa|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+  ],
+}
