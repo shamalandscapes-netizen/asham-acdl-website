@@ -38,8 +38,17 @@ export default function CategoriesPage() {
       .select('*')
       .order('name');
 
-    if (error) console.error('Error fetching categories:', error);
-    else setCategories(data || []);
+    if (error) {
+      console.error('Error fetching categories:', error);
+      setCategories([]);
+    } else {
+      // Transform data to ensure description is never null
+      const formattedCategories = (data || []).map(category => ({
+        ...category,
+        description: category.description || '', // Convert null to empty string
+      }));
+      setCategories(formattedCategories);
+    }
     setLoading(false);
   };
 
