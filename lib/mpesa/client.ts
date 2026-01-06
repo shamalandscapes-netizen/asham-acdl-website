@@ -61,7 +61,7 @@ export class MpesaClient {
       // Expiry is typically 3600 seconds (1 hour)
       MpesaClient.tokenExpiry = now + (data.expires_in * 1000); 
 
-      return MpesaClient.accessToken;
+      return MpesaClient.accessToken!;
 
     } catch (error) {
       console.error('Error fetching M-Pesa access token:', error);
