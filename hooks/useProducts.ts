@@ -43,7 +43,7 @@ export const useProducts = () => {
 
       // 2. Safely cast and set the products
       if (data) {
-        setProducts(data as Product[]);
+        setProducts(data as unknown as Product[]);
       }
     } catch (err: any) {
       console.error("Supabase fetch error for products:", err);
