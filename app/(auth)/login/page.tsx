@@ -1,13 +1,23 @@
 ﻿'use client';
 
-import { useState, Suspense } from 'react';
+import { useState, Suspense, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
-import { Loader2, AlertCircle, Mail, Lock, ArrowRight } from 'lucide-react';
+import { 
+  Loader2, 
+  AlertCircle, 
+  Mail, 
+  Lock, 
+  Phone, 
+  MessageSquare, 
+  Eye, 
+  EyeOff,
+  CheckCircle2
+} from 'lucide-react';
 import Button from '@/components/ui/Button'; 
 
-// --- Google Icon SVG Component ---
+// --- Google Icon SVG ---
 const GoogleIcon = () => (
   <svg className="w-5 h-5" viewBox="0 0 24 24">
     <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
@@ -21,13 +31,34 @@ function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const requestedRedirect = searchParams.get('redirect');
-   
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const errorParam = searchParams.get('error');
+  const supabase = createClient();
+
+  // Shared UI States
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [authMethod, setAuthMethod] = useState<'email' | 'phone'>('email');
 
-  const supabase = createClient();
+  // Email States
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+
+  // Phone/OTP States
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [otpCode, setOtpCode] = useState('');
+  const [isOtpSent, setIsOtpSent] = useState(false);
+
+  // Catch errors from the Auth Callback (Expert Implementation)
+  useEffect(() => {
+    if (errorParam === 'auth-callback-failed') {
+      setError('The security link has expired or is invalid. Please try again.');
+    } else if (errorParam === 'verification-failed') {
+      setError('Could not verify your identity. Please sign in again.');
+    }
+  }, [errorParam]);
+
+  // --- Handlers ---
 
   const handleGoogleLogin = async () => {
     setLoading(true);
@@ -36,7 +67,7 @@ function LoginForm() {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${location.origin}/auth/callback?redirect=${requestedRedirect || '/dashboard'}`,
+          redirectTo: `${location.origin}/auth/callback?next=${requestedRedirect || '/dashboard'}`,
         },
       });
       if (error) throw error;
@@ -46,141 +77,226 @@ function LoginForm() {
     }
   };
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleEmailLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+    try {
+      const { data, error: authError } = await supabase.auth.signInWithPassword({ email, password });
+      if (authError) throw authError;
+
+      const role = data.user?.user_metadata?.role || 'customer';
+      const dest = requestedRedirect || (role === 'admin' ? '/admin' : '/dashboard');
+      
+      router.push(dest);
+      router.refresh();
+    } catch (err: any) {
+      setError(err?.message || 'Invalid email or password.');
+      setLoading(false);
+    }
+  };
+
+  const handlePhoneLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
 
     try {
-      // 1. Authenticate with Supabase
-      const { data, error: authError } = await supabase.auth.signInWithPassword({ email, password });
-      if (authError) throw authError;
-      if (!data.user) throw new Error('No user found');
-
-      // 2. Fetch the role from the public.users table
-      const { data: profile } = await supabase
-        .from('users')
-        .select('role')
-        .eq('id', data.user.id)
-        .single();
-
-      const role = profile?.role || '';
-      const isAdmin = ['super_admin', 'admin', 'accounts', 'staff', 'it'].includes(role);
-
-      // 3. PRIORITY REDIRECT LOGIC
-      // window.location.href is used for admin to ensure a full session refresh
-      if (isAdmin) {
-        window.location.href = '/admin';
-      } else if (requestedRedirect) {
-        router.push(requestedRedirect);
-        router.refresh();
+      if (!isOtpSent) {
+        const { error } = await supabase.auth.signInWithOtp({ phone: phoneNumber });
+        if (error) throw error;
+        setIsOtpSent(true);
       } else {
-        router.push('/dashboard');
+        const { error } = await supabase.auth.verifyOtp({
+          phone: phoneNumber,
+          token: otpCode,
+          type: 'sms',
+        });
+        if (error) throw error;
+        router.push(requestedRedirect || '/dashboard');
         router.refresh();
       }
     } catch (err: any) {
-      setError(err?.message || 'Invalid login credentials.');
+      setError(err?.message || 'Phone authentication failed. Check your number format.');
+    } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="w-full px-4 py-8 bg-white border border-gray-100 shadow-xl sm:rounded-xl sm:px-10">
+    <div className="w-full px-4 py-8 bg-white border border-gray-100 shadow-2xl sm:rounded-2xl sm:px-10">
       
-      <div className="mb-6 text-center">
-        <Link href="/" className="inline-flex items-center justify-center h-12 w-12 bg-[#06392F] rounded-xl text-white font-bold text-2xl shadow-lg mb-4">
+      {/* Header */}
+      <div className="mb-8 text-center">
+        <Link href="/" className="inline-flex items-center justify-center h-14 w-14 bg-[#06392F] rounded-2xl text-white font-bold text-3xl shadow-xl mb-4 hover:scale-105 transition-transform">
           A
         </Link>
-        <h2 className="text-3xl font-bold text-gray-900">Welcome Back</h2>
-        <p className="mt-2 text-sm text-gray-600">
-          Don't have an account? <Link href="/register" className="font-bold text-[#C75B39] hover:underline">Create one</Link>
+        <h2 className="text-3xl font-extrabold tracking-tight text-gray-900">Access Portal</h2>
+        <p className="mt-2 text-sm text-gray-500">
+          New to Asham? <Link href="/register" className="font-bold text-[#C75B39] hover:underline">Create Account</Link>
         </p>
       </div>
 
+      {/* Social Login */}
       <button
         onClick={handleGoogleLogin}
-        type="button"
         disabled={loading}
-        className="flex items-center justify-center w-full px-4 py-3 text-sm font-bold text-gray-700 transition-all bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+        className="flex items-center justify-center w-full px-4 py-3 text-sm font-bold text-gray-700 transition-all bg-white border border-gray-200 shadow-sm rounded-xl hover:bg-gray-50 disabled:opacity-50"
       >
         <GoogleIcon />
         <span className="ml-3">Continue with Google</span>
       </button>
 
       <div className="relative my-8">
-        <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-gray-200" /></div>
-        <div className="relative flex justify-center text-sm">
-          <span className="px-2 font-medium text-gray-400 uppercase bg-white">Or email login</span>
+        <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-gray-100" /></div>
+        <div className="relative flex justify-center text-xs">
+          <span className="px-4 font-bold tracking-widest text-gray-400 uppercase bg-white">Secure Options</span>
         </div>
       </div>
 
-      <form className="space-y-5" onSubmit={handleLogin}>
-        <div>
-          <label className="block mb-1 text-sm font-bold text-gray-700">Email Address</label>
-          <div className="relative">
-            <Mail className="absolute w-5 h-5 text-gray-400 -translate-y-1/2 left-3 top-1/2" />
-            <input
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#06392F]"
-              placeholder="you@example.com"
-            />
-          </div>
-        </div>
-
-        <div>
-          <div className="flex items-center justify-between mb-1">
-            <label className="block text-sm font-bold text-gray-700">Password</label>
-            <Link 
-              href="/forgot-password" 
-              className="text-xs font-bold text-[#06392F] hover:underline"
-            >
-              Forgot password?
-            </Link>
-          </div>
-          <div className="relative">
-            <Lock className="absolute w-5 h-5 text-gray-400 -translate-y-1/2 left-3 top-1/2" />
-            <input
-              type="password"
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#06392F]"
-              placeholder="••••••••"
-            />
-          </div>
-        </div>
-
-        {error && (
-          <div className="flex items-center gap-3 p-4 border border-red-100 rounded-lg bg-red-50">
-            <AlertCircle className="w-5 h-5 text-red-500 shrink-0" />
-            <p className="text-sm font-bold text-red-800">{error}</p>
-          </div>
-        )}
-
-        <Button 
-          type="submit" 
-          className="w-full py-3 shadow-lg" 
-          isLoading={loading} 
-          rightIcon={!loading && <ArrowRight size={18} />}
+      {/* Auth Method Switcher Tabs */}
+      <div className="flex p-1 mb-8 bg-gray-50 rounded-xl">
+        <button
+          type="button"
+          onClick={() => { setAuthMethod('email'); setError(null); }}
+          className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${authMethod === 'email' ? 'bg-white text-[#06392F] shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
         >
-          Sign In
-        </Button>
-      </form>
+          Email
+        </button>
+        <button
+          type="button"
+          onClick={() => { setAuthMethod('phone'); setError(null); }}
+          className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${authMethod === 'phone' ? 'bg-white text-[#06392F] shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
+        >
+          Phone SMS
+        </button>
+      </div>
+
+      {/* Main Forms */}
+      {authMethod === 'email' ? (
+        <form className="space-y-5" onSubmit={handleEmailLogin}>
+          <div>
+            <label className="block mb-1.5 text-xs font-bold text-gray-700 uppercase">Email Address</label>
+            <div className="relative">
+              <Mail className="absolute w-5 h-5 text-gray-400 -translate-y-1/2 left-3 top-1/2" />
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="block w-full pl-10 pr-3 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#06392F] outline-none transition-all"
+                placeholder="architect@asham.com"
+              />
+            </div>
+          </div>
+
+          <div>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="block text-xs font-bold text-gray-700 uppercase">Password</label>
+              <Link href="/forgot-password" className="text-xs font-bold text-[#06392F] hover:underline">Reset?</Link>
+            </div>
+            <div className="relative">
+              <Lock className="absolute w-5 h-5 text-gray-400 -translate-y-1/2 left-3 top-1/2" />
+              <input
+                type={showPassword ? "text" : "password"}
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="block w-full pl-10 pr-12 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#06392F] outline-none transition-all"
+                placeholder="••••••••"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute text-gray-400 -translate-y-1/2 right-3 top-1/2 hover:text-gray-700"
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
+          </div>
+          <Button type="submit" className="w-full py-4 text-lg bg-[#06392F] text-white rounded-xl shadow-lg" isLoading={loading}>
+            Sign In
+          </Button>
+        </form>
+      ) : (
+        <form className="space-y-5" onSubmit={handlePhoneLogin}>
+          {!isOtpSent ? (
+            <div>
+              <label className="block mb-1.5 text-xs font-bold text-gray-700 uppercase">Phone Number</label>
+              <div className="relative">
+                <Phone className="absolute w-5 h-5 text-gray-400 -translate-y-1/2 left-3 top-1/2" />
+                <input
+                  type="tel"
+                  required
+                  value={phoneNumber}
+                  onChange={(e) => setPhoneNumber(e.target.value)}
+                  className="block w-full pl-10 pr-3 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#06392F] outline-none transition-all font-medium"
+                  placeholder="+254 711 70XXXX"
+                />
+              </div>
+              <p className="mt-2 text-[10px] text-gray-400 leading-relaxed uppercase tracking-tighter">
+                Enter number with country code (e.g. +254 for Kenya)
+              </p>
+            </div>
+          ) : (
+            <div className="duration-300 animate-in fade-in zoom-in">
+              <div className="flex flex-col items-center mb-4">
+                <div className="p-3 mb-2 rounded-full bg-green-50">
+                  <CheckCircle2 className="w-6 h-6 text-[#06392F]" />
+                </div>
+                <label className="block text-xs font-bold text-gray-700 uppercase">Enter 6-Digit Code</label>
+              </div>
+              <div className="relative">
+                <MessageSquare className="absolute w-5 h-5 text-gray-400 -translate-y-1/2 left-4 top-1/2" />
+                <input
+                  type="text"
+                  required
+                  maxLength={6}
+                  value={otpCode}
+                  onChange={(e) => setOtpCode(e.target.value)}
+                  className="block w-full pl-12 pr-4 py-4 text-center tracking-[0.5em] text-2xl font-black border-2 border-gray-200 rounded-xl focus:border-[#06392F] outline-none"
+                  placeholder="000000"
+                />
+              </div>
+              <button 
+                type="button" 
+                onClick={() => setIsOtpSent(false)}
+                className="mt-4 w-full text-xs font-bold text-[#C75B39] hover:underline"
+              >
+                ← Change phone number
+              </button>
+            </div>
+          )}
+          <Button type="submit" className="w-full py-4 text-lg bg-[#06392F] text-white rounded-xl shadow-lg" isLoading={loading}>
+            {isOtpSent ? 'Verify & Continue' : 'Send SMS Code'}
+          </Button>
+        </form>
+      )}
+
+      {/* Expert Error Notification System */}
+      {error && (
+        <div className="flex items-start gap-3 p-4 mt-6 border border-red-50 rounded-xl bg-red-50/50 animate-in slide-in-from-bottom-2">
+          <AlertCircle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
+          <p className="text-sm font-bold leading-tight text-red-800">{error}</p>
+        </div>
+      )}
     </div>
   );
 }
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={
-      <div className="flex items-center justify-center p-12">
-        <Loader2 className="h-8 w-8 animate-spin text-[#06392F]" />
+    <div className="min-h-[90vh] flex items-center justify-center p-4 bg-gray-50/30">
+      <div className="w-full max-w-md">
+        <Suspense fallback={
+          <div className="flex flex-col items-center justify-center p-12 bg-white shadow-xl rounded-2xl">
+            <Loader2 className="h-10 w-10 animate-spin text-[#06392F] mb-4" />
+            <p className="text-sm font-bold tracking-widest text-gray-400 uppercase">Authenticating...</p>
+          </div>
+        }>
+          <LoginForm />
+        </Suspense>
       </div>
-    }>
-      <LoginForm />
-    </Suspense>
+    </div>
   );
 }

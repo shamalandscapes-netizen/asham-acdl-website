@@ -1,96 +1,134 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import Image from 'next/image';
-import { ArrowLeft, CreditCard, Loader2, MapPin, Phone, ShieldCheck, ShoppingBag } from 'lucide-react';
+import { 
+  ArrowLeft, CreditCard, Loader2, ShieldCheck, 
+  ShoppingBag, Globe, Landmark, MapPin, Construction,
+  Phone, Mail, User, CheckCircle2, ChevronDown
+} from 'lucide-react'; 
 import { toast } from 'react-hot-toast';
+import Link from 'next/link';
 
-import { useCartStore } from '@/store/cart-store';
-import { formatCurrency } from '@/lib/utils/formatters';
-import { formatMpesaPhone } from '@/lib/utils/payments';
-import { cn } from '@/lib/utils';
+import { useCartStore } from '@/store/cart-store'; 
+import { cn, formatCurrency, formatMpesaPhone } from '@/lib/utils';
+
+// --- DATASET: Counties and Sub-Counties ---
+const KENYA_LOCATIONS: Record<string, string[]> = {
+  "Nairobi": ["Westlands", "Dagoretti North", "Dagoretti South", "Langata", "Kibra", "Roysambu", "Kasarani", "Ruaraka", "Embakasi North", "Embakasi Central", "Embakasi East", "Embakasi West", "Embakasi South", "Makadara", "Kamkunji", "Starehe", "Mathare"],
+  "Mombasa": ["Changamwe", "Jomvu", "Kisauni", "Nyali", "Likoni", "Mvita"],
+  "Kwale": ["Msambweni", "Lunga Lunga", "Kwale", "Kinango"],
+  "Kilifi": ["Kilifi North", "Kilifi South", "Kaloleni", "Rabai", "Ganze", "Malindi", "Magarini"],
+  "Tana River": ["Tana Delta", "Tana River", "Tana North"],
+  "Lamu": ["Lamu East", "Lamu West"],
+  "Taita Taveta": ["Taveta", "Wundanyi", "Mwatate", "Voi"],
+  "Garissa": ["Garissa Township", "Balambala", "Lagdera", "Dadaab", "Fafi", "Ijara"],
+  "Wajir": ["Wajir North", "Wajir East", "Wajir South", "Wajir West", "Eldas", "Tarbaj"],
+  "Mandera": ["Mandera West", "Mandera North", "Mandera Central", "Mandera East", "Mandera South", "Lafey"],
+  "Marsabit": ["Moyale", "Saku", "Laisamis", "North Horr"],
+  "Isiolo": ["Isiolo", "Garbatulla", "Merti"],
+  "Meru": ["Igembe South", "Igembe Central", "Igembe North", "Tigania West", "Tigania East", "North Imenti", "Buuri", "Central Imenti", "South Imenti"],
+  "Tharaka-Nithi": ["Maara", "Chuka/Igambang'ombe", "Tharaka"],
+  "Embu": ["Manyatta", "Runyenjes", "Mbeere North", "Mbeere South"],
+  "Kitui": ["Mwingi North", "Mwingi West", "Mwingi Central", "Kitui West", "Kitui Rural", "Kitui Central", "Kitui East", "Kitui South"],
+  "Machakos": ["Masinga", "Yatta", "Kangundo", "Matungulu", "Kathiani", "Mavoko", "Machakos Town", "Mwala"],
+  "Makueni": ["Mbooni", "Kilome", "Kaiti", "Makueni", "Kibwezi West", "Kibwezi East"],
+  "Nyandarua": ["Kinangop", "Kipipiri", "Ol Kalou", "Ol Joro Orok", "Ndaragwa"],
+  "Nyeri": ["Tetu", "Kieni", "Mathira", "Othaya", "Mukurweini", "Nyeri Town"],
+  "Kirinyaga": ["Mwea", "Gichugu", "Ndia", "Kirinyaga Central"],
+  "Murang'a": ["Kangema", "Mathioya", "Kiharu", "Kigumo", "Maragua", "Kandara", "Gatanga"],
+  "Kiambu": ["Gatundu South", "Gatundu North", "Githunguri", "Kiambu", "Kiambaa", "Kabete", "Kikuyu", "Limuru", "Lari", "Thika Town", "Ruiru", "Juja"],
+  "Turkana": ["Turkana North", "Turkana West", "Turkana Central", "Loima", "Turkana South", "Turkana East"],
+  "West Pokot": ["Kapenguria", "Sigor", "Kacheliba", "Pokot South"],
+  "Samburu": ["Samburu North", "Samburu East", "Samburu West"],
+  "Trans Nzoia": ["Kwanza", "Endebess", "Saboti", "Kiminini", "Cherangany"],
+  "Uasin Gishu": ["Soy", "Turbo", "Moiben", "Ainabkoi", "Kapseret", "Kesses"],
+  "Elgeyo-Marakwet": ["Marakwet East", "Marakwet West", "Keiyo South", "Keiyo North"],
+  "Nandi": ["Tinderet", "Aldai", "Nandi Hills", "Chesumei", "Emgwen", "Mosop"],
+  "Baringo": ["Tiaty", "Baringo North", "Baringo Central", "Baringo South", "Mogotio", "Eldama Ravine"],
+  "Laikipia": ["Laikipia West", "Laikipia East", "Laikipia North"],
+  "Nakuru": ["Molo", "Njoro", "Naivasha", "Gilgil", "Kuresoi South", "Kuresoi North", "Subukia", "Rongai", "Bahati", "Nakuru Town West", "Nakuru Town East"],
+  "Narok": ["Narok North", "Narok South", "Narok East", "Narok West", "Emurua Dikirr", "Kilgoris"],
+  "Kajiado": ["Kajiado North", "Kajiado Central", "Kajiado East", "Kajiado West", "Kajiado South"],
+  "Kericho": ["Kipkelion East", "Kipkelion West", "Ainamoi", "Belgut", "Sigowet/Soin", "Bureti"],
+  "Bomet": ["Sotik", "Chepalungu", "Bomet East", "Bomet Central", "Konoin"],
+  "Kakamega": ["Lugari", "Likuyani", "Malava", "Lurambi", "Navakholo", "Mumias West", "Mumias East", "Matungu", "Butere", "Khwisero", "Shinyalu", "Ikolomani"],
+  "Vihiga": ["Vihiga", "Sabatia", "Hamisi", "Luanda", "Emuhaya"],
+  "Bungoma": ["Mt. Elgon", "Sirisia", "Kabuchai", "Bumula", "Kanduyi", "Webuye East", "Webuye West", "Kimilili", "Tongaren"],
+  "Busia": ["Teso North", "Teso South", "Nambale", "Matayos", "Butula", "Funyula", "Budalangi"],
+  "Siaya": ["Ugenya", "Ugunja", "Alego Usonga", "Gem", "Bondo", "Rarieda"],
+  "Kisumu": ["Kisumu East", "Kisumu West", "Kisumu Central", "Seme", "Nyando", "Muhoroni", "Nyakach"],
+  "Homa Bay": ["Kasipul", "Kabondo Kasipul", "Karachuonyo", "Rangwe", "Homa Bay Town", "Ndhiwa", "Suba North", "Suba South"],
+  "Migori": ["Rongo", "Awendo", "Suna East", "Suna West", "Uriri", "Nyatike", "Kuria West", "Kuria East"],
+  "Kisii": ["Bonchari", "South Mugirango", "Bomachoge Borabu", "Bobasi", "Gucha", "Bomachoge Chache", "Nyaribari Chache", "Nyaribari Masaba", "Kitutu Chache North", "Kitutu Chache South"],
+  "Nyamira": ["Kitutu Masaba", "West Mugirango", "North Mugirango", "Borabu"],
+};
 
 export default function CheckoutPage() {
   const router = useRouter();
-  const { items, totalPrice, clearCart } = useCartStore();
+  const { items, clearCart } = useCartStore();
   const [isProcessing, setIsProcessing] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<'mpesa' | 'stripe' | 'paypal'>('mpesa');
 
-  // Form State
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
     phone: '',
     address: '',
-    city: '',
-    county: 'Kakamega', // Default
+    city: '', 
+    county: 'Nairobi',
+    projectName: '',
   });
 
-  // Check if order requires shipping (if it has physical items)
-  const hasPhysicalItems = items.some(item => !item.is_digital);
+  useEffect(() => setMounted(true), []);
 
   useEffect(() => {
-    setMounted(true);
-    // If cart is empty, redirect back to shop
-    if (items.length === 0) {
-      router.push('/shop');
+    const validSubcounties = KENYA_LOCATIONS[formData.county] || ["Other"];
+    if (!validSubcounties.includes(formData.city)) {
+      setFormData(prev => ({ ...prev, city: validSubcounties[0] }));
     }
-  }, [items, router]);
+  }, [formData.county]);
 
-  // Handle Input Changes
+  const totalPrice = useMemo(() => items.reduce((sum, item) => sum + (item.price * item.quantity), 0), [items]);
+  const vatAmount = useMemo(() => totalPrice * 0.16, [totalPrice]);
+  const subtotal = useMemo(() => totalPrice - vatAmount, [totalPrice]);
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
-  // Handle Form Submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!items?.length) return toast.error("Manifest is empty");
+
     setIsProcessing(true);
-
     try {
-      // 1. Validate Phone
-      const mpesaPhone = formatMpesaPhone(formData.phone);
-
-      // 2. Prepare Payload (This is what we will send to the API later)
       const orderPayload = {
-        customer: {
-          name: formData.fullName,
-          email: formData.email,
-          phone: mpesaPhone,
-        },
-        shipping: hasPhysicalItems ? {
-          address: formData.address,
-          city: formData.city,
-          county: formData.county,
-        } : null,
-        items: items.map(item => ({
-          id: item.id,
-          quantity: item.quantity,
-          price: item.price
-        })),
-        total: totalPrice,
+        customer: { ...formData, phone: formatMpesaPhone(formData.phone) },
+        items: items.map(item => ({ id: item.id, quantity: item.quantity })),
+        paymentMethod,
+        projectName: formData.projectName || 'General Acquisition'
       };
 
-      console.log('Submitting Order:', orderPayload);
+      const res = await fetch('/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(orderPayload),
+      });
 
-      // TODO: Call API endpoint here
-      // await axios.post('/api/orders', orderPayload);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Checkout failed");
 
-      // Simulate API delay for now
-      await new Promise(resolve => setTimeout(resolve, 2000));
-
-      toast.success('Order placed successfully! Please check your phone for the M-Pesa prompt.');
-      
-      // Clear cart and redirect to success page (we will build this later)
-      // clearCart(); 
-      // router.push('/checkout/success?orderId=123');
-
+      if (paymentMethod === 'stripe') router.push(`/checkout/stripe?clientSecret=${data.clientSecret}`);
+      else if (paymentMethod === 'paypal') router.push(`/checkout/paypal?orderId=${data.orderId}`);
+      else {
+        toast.success('STK Push sent!');
+        router.push(`/checkout/success?orderId=${data.orderId}`);
+        clearCart();
+      }
     } catch (error: any) {
-      console.error(error);
-      toast.error(error.message || 'Something went wrong. Please check your details.');
+      toast.error(error.message);
     } finally {
       setIsProcessing(false);
     }
@@ -99,228 +137,158 @@ export default function CheckoutPage() {
   if (!mounted) return null;
 
   return (
-    <div className="min-h-screen pb-20 bg-gray-50">
-      <div className="container px-4 py-8 mx-auto">
-        
-        {/* Header */}
-        <div className="flex items-center gap-2 mb-8">
-          <Link href="/shop" className="text-gray-500 transition-colors hover:text-black">
-            <ArrowLeft className="w-5 h-5" />
+    <div className="min-h-screen bg-[#FBFBFB] text-[#06392F]">
+      <div className="bg-white border-b border-gray-100">
+        <div className="container px-6 py-12 mx-auto">
+          <Link href="/cart" className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-[#C75B39] mb-6">
+            <ArrowLeft className="w-4 h-4" /> Return to Manifest
           </Link>
-          <h1 className="text-2xl font-bold">Checkout</h1>
-        </div>
-
-        <div className="grid grid-cols-1 gap-8 lg:grid-cols-2 lg:gap-12">
-          
-          {/* LEFT COLUMN: Customer Details Form */}
-          <div className="space-y-6">
-            <form id="checkout-form" onSubmit={handleSubmit} className="space-y-6">
-              
-              {/* Contact Info */}
-              <div className="p-6 bg-white border shadow-sm rounded-xl">
-                <h2 className="flex items-center gap-2 mb-4 text-lg font-semibold">
-                  <ShieldCheck className="w-5 h-5 text-blue-600" />
-                  Contact Information
-                </h2>
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                  <div className="md:col-span-2">
-                    <label htmlFor="fullName" className="block mb-1 text-sm font-medium text-gray-700">Full Name</label>
-                    <input 
-                      id="fullName" // ✅ Added ID
-                      required
-                      type="text"
-                      name="fullName"
-                      value={formData.fullName}
-                      onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black"
-                      placeholder="John Doe"
-                    />
-                  </div>
-                  <div className="md:col-span-2">
-                    <label htmlFor="email" className="block mb-1 text-sm font-medium text-gray-700">Email Address</label>
-                    <input 
-                      id="email" // ✅ Added ID
-                      required
-                      type="email"
-                      name="email"
-                      value={formData.email}
-                      onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black"
-                      placeholder="john@example.com"
-                    />
-                  </div>
-                  <div className="md:col-span-2">
-                    <label htmlFor="phone" className="block mb-1 text-sm font-medium text-gray-700">M-Pesa Phone Number</label>
-                    <div className="relative">
-                      <Phone className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
-                      <input 
-                        id="phone" // ✅ Added ID
-                        required
-                        type="tel"
-                        name="phone"
-                        value={formData.phone}
-                        onChange={handleInputChange}
-                        className="w-full py-2 pl-10 pr-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black"
-                        placeholder="0712 345 678"
-                      />
-                    </div>
-                    <p className="mt-1 text-xs text-gray-500">We'll send an M-Pesa prompt to this number.</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Shipping Address (Conditional) */}
-              {hasPhysicalItems ? (
-                <div className="p-6 bg-white border shadow-sm rounded-xl">
-                  <h2 className="flex items-center gap-2 mb-4 text-lg font-semibold">
-                    <MapPin className="w-5 h-5 text-blue-600" />
-                    Shipping Address
-                  </h2>
-                  <div className="space-y-4">
-                    <div>
-                      <label htmlFor="address" className="block mb-1 text-sm font-medium text-gray-700">Street Address / Landmark</label>
-                      <input 
-                        id="address" // ✅ Added ID
-                        required
-                        type="text"
-                        name="address"
-                        value={formData.address}
-                        onChange={handleInputChange}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black"
-                        placeholder="Near Kakamega Primary School"
-                      />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label htmlFor="city" className="block mb-1 text-sm font-medium text-gray-700">Town / City</label>
-                        <input 
-                          id="city" // ✅ Added ID
-                          required
-                          type="text"
-                          name="city"
-                          value={formData.city}
-                          onChange={handleInputChange}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black"
-                          placeholder="Kakamega"
-                        />
-                      </div>
-                      <div>
-                        <label htmlFor="county" className="block mb-1 text-sm font-medium text-gray-700">County</label>
-                        <select 
-                          id="county" // ✅ Added ID to fix the specific error
-                          name="county"
-                          value={formData.county}
-                          onChange={handleInputChange}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black"
-                          aria-label="Select your county" // ✅ Added aria-label as backup
-                        >
-                          <option value="Kakamega">Kakamega</option>
-                          <option value="Nairobi">Nairobi</option>
-                          <option value="Kisumu">Kisumu</option>
-                          <option value="Mombasa">Mombasa</option>
-                          <option value="Other">Other</option>
-                        </select>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="flex items-start gap-3 p-4 text-sm text-blue-800 border border-blue-100 rounded-lg bg-blue-50">
-                  <ShieldCheck className="flex-shrink-0 w-5 h-5" />
-                  <p>Your order contains only digital items. No shipping address is required. You will receive download links via email immediately after payment.</p>
-                </div>
-              )}
-
-            </form>
-          </div>
-
-          {/* RIGHT COLUMN: Order Summary */}
-          <div className="space-y-6">
-            <div className="sticky p-6 bg-white border shadow-lg rounded-xl top-8">
-              <h2 className="flex items-center gap-2 mb-4 text-lg font-semibold">
-                <ShoppingBag className="w-5 h-5" />
-                Order Summary
-              </h2>
-
-              {/* Items List */}
-              <div className="pr-2 mb-6 space-y-4 overflow-y-auto max-h-60 custom-scrollbar">
-                {items.map((item) => (
-                  <div key={item.id} className="flex items-start gap-4">
-                    <div className="relative flex-shrink-0 w-12 h-12 overflow-hidden bg-gray-100 rounded-md">
-                      {item.image_url && (
-                        <Image src={item.image_url} alt={item.name} fill className="object-cover" />
-                      )}
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-gray-900 line-clamp-1">{item.name}</p>
-                      <p className="text-xs text-gray-500">Qty: {item.quantity}</p>
-                    </div>
-                    <div className="text-sm font-semibold">
-                      {formatCurrency(item.price * item.quantity)}
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Totals */}
-              <div className="pt-4 mb-6 space-y-2 border-t">
-                <div className="flex justify-between text-sm text-gray-600">
-                  <span>Subtotal</span>
-                  <span>{formatCurrency(totalPrice)}</span>
-                </div>
-                {hasPhysicalItems && (
-                  <div className="flex justify-between text-sm text-gray-600">
-                    <span>Shipping</span>
-                    <span className="text-xs font-medium bg-gray-100 px-2 py-0.5 rounded">Calculated later</span>
-                  </div>
-                )}
-                <div className="flex justify-between pt-2 mt-2 text-lg font-bold text-gray-900 border-t">
-                  <span>Total</span>
-                  <span>{formatCurrency(totalPrice)}</span>
-                </div>
-              </div>
-
-              {/* Payment Method Display */}
-              <div className="flex items-center gap-3 p-3 mb-6 border border-green-100 rounded-lg bg-green-50">
-                <div className="bg-green-600 text-white p-1.5 rounded">
-                  <CreditCard className="w-4 h-4" />
-                </div>
-                <div>
-                  <p className="text-sm font-bold text-green-900">M-Pesa</p>
-                  <p className="text-xs text-green-700">Fast & Secure Mobile Money</p>
-                </div>
-              </div>
-
-              {/* Submit Button */}
-              <button
-                type="submit"
-                form="checkout-form"
-                disabled={isProcessing}
-                className={cn(
-                  "w-full py-4 px-6 rounded-lg font-bold text-white shadow-md transition-all",
-                  isProcessing 
-                    ? "bg-gray-400 cursor-not-allowed" 
-                    : "bg-green-600 hover:bg-green-700 hover:shadow-lg"
-                )}
-              >
-                {isProcessing ? (
-                  <span className="flex items-center justify-center gap-2">
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    Processing...
-                  </span>
-                ) : (
-                  `Pay ${formatCurrency(totalPrice)}`
-                )}
-              </button>
-              
-              <p className="mt-4 text-xs text-center text-gray-500">
-                By clicking "Pay", you agree to our Terms & Conditions.
-              </p>
-            </div>
-          </div>
-
+          <h1 className="text-4xl font-black tracking-tighter uppercase md:text-6xl">Final Settlement</h1>
         </div>
       </div>
+
+      <div className="container px-6 py-16 mx-auto">
+        <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-16 lg:grid-cols-12">
+          
+          <div className="space-y-12 lg:col-span-7">
+            {/* Identification Section */}
+            <section className="space-y-8">
+              <SectionHeader number="01" title="Project Identification" />
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                <InputGroup label="Representative Name" name="fullName" value={formData.fullName} onChange={handleInputChange} placeholder="e.g. Arch. John Doe" icon={<User className="w-3 h-3"/>} />
+                <InputGroup label="Project Name / ID" name="projectName" value={formData.projectName} onChange={handleInputChange} placeholder="e.g. Westlands Villa" icon={<Construction className="w-3 h-3"/>} />
+                <InputGroup label="Email for Invoicing" name="email" type="email" value={formData.email} onChange={handleInputChange} placeholder="john@project.com" icon={<Mail className="w-3 h-3"/>} />
+                <InputGroup label="Contact Phone" name="phone" value={formData.phone} onChange={handleInputChange} placeholder="07XX XXX XXX" icon={<Phone className="w-3 h-3"/>} />
+              </div>
+            </section>
+
+            {/* Logistics Section */}
+            <section className="space-y-8">
+              <SectionHeader number="02" title="Site Logistics" />
+              <div className="space-y-6">
+                <InputGroup label="Delivery Site Address" name="address" value={formData.address} onChange={handleInputChange} placeholder="e.g. LR-209, Mbagathi Way" icon={<MapPin className="w-3 h-3"/>} />
+
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <SelectGroup label="County" name="county" value={formData.county} onChange={handleInputChange} options={Object.keys(KENYA_LOCATIONS).sort()} />
+                  <SelectGroup label="Sub-County / Area" name="city" value={formData.city} onChange={handleInputChange} options={KENYA_LOCATIONS[formData.county] || ["Other"]} />
+                </div>
+              </div>
+            </section>
+
+            {/* Payment Gateway */}
+            <section className="space-y-8">
+              <SectionHeader number="03" title="Settlement Gateway" />
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                <PaymentOption active={paymentMethod === 'mpesa'} onClick={() => setPaymentMethod('mpesa')} icon={<div className="p-1 font-black text-white bg-[#4caf50] rounded px-2 text-[10px]">MPESA</div>} label="M-Pesa" description="STK Push" />
+                <PaymentOption active={paymentMethod === 'stripe'} onClick={() => setPaymentMethod('stripe')} icon={<Globe className="text-blue-500" />} label="Card" description="Visa / MC" />
+                <PaymentOption active={paymentMethod === 'paypal'} onClick={() => setPaymentMethod('paypal')} icon={<Landmark className="text-[#003087]" />} label="PayPal" description="Wallet" />
+              </div>
+            </section>
+          </div>
+
+          {/* Right Column: Order Summary & Manifest Preview */}
+          <div className="lg:col-span-5">
+            <div className="sticky space-y-6 top-8">
+              <div className="bg-[#06392F] text-white p-8 rounded-[3rem] shadow-2xl relative overflow-hidden">
+                <h2 className="flex justify-between pb-6 mb-8 text-2xl font-black uppercase border-b border-white/10">Financial Proof <ShieldCheck className="text-[#C75B39]"/></h2>
+                
+                <div className="mb-10 space-y-4">
+                  <SummaryRow label="Material Subtotal" value={formatCurrency(subtotal)} />
+                  <SummaryRow label="Statutory VAT (16%)" value={formatCurrency(vatAmount)} />
+                  <SummaryRow label="Logistics" value="Gratis" highlight />
+                  
+                  <div className="pt-8 mt-8 border-t border-white/20">
+                    <span className="text-[10px] font-black uppercase text-[#C75B39] tracking-widest">Payable Amount</span>
+                    <p className="text-5xl font-black tracking-tighter">{formatCurrency(totalPrice)}</p>
+                  </div>
+                </div>
+
+                <button type="submit" disabled={isProcessing} className="w-full bg-[#C75B39] text-white py-6 rounded-2xl font-black uppercase text-xs tracking-[0.4em] hover:bg-white hover:text-[#06392F] transition-all disabled:opacity-50">
+                  {isProcessing ? <Loader2 className="mx-auto animate-spin" /> : "Initialize Settlement"}
+                </button>
+              </div>
+
+              {/* RESTORED: Items Preview Section */}
+              <div className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm">
+                <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-6 flex justify-between items-center">
+                  Items to be Dispatched <span>({items.length})</span>
+                </p>
+                <div className="space-y-6 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+                  {items.map((item) => (
+                    <div key={item.id} className="flex items-start justify-between group">
+                      <div className="space-y-1">
+                        <p className="font-bold text-sm text-[#06392F] uppercase tracking-tight leading-tight group-hover:text-[#C75B39] transition-colors">
+                          {item.name} <span className="ml-1 text-gray-300">x{item.quantity}</span>
+                        </p>
+                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">
+                          Unit Price: {formatCurrency(item.price)}
+                        </p>
+                      </div>
+                      <span className="font-black text-sm text-[#06392F]">
+                        {formatCurrency(item.price * item.quantity)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </form>
+      </div>
     </div>
+  );
+}
+
+// --- REFACTORED HELPERS ---
+
+function SectionHeader({ number, title }: { number: string, title: string }) {
+  return (
+    <div className="flex items-center gap-4">
+      <span className="flex items-center justify-center w-10 h-10 rounded-full border-2 border-[#06392F] text-xs font-black">{number}</span>
+      <h2 className="text-xl font-black tracking-tight uppercase">{title}</h2>
+    </div>
+  );
+}
+
+function InputGroup({ label, name, value, onChange, placeholder, icon, type = "text" }: any) {
+  return (
+    <div className="space-y-2">
+      <label className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-gray-400">{icon} {label}</label>
+      <input type={type} name={name} required value={value} onChange={onChange} placeholder={placeholder} className="w-full px-5 py-4 bg-white border-2 border-gray-100 rounded-2xl focus:border-[#C75B39] outline-none font-bold transition-all" />
+    </div>
+  );
+}
+
+function SelectGroup({ label, name, value, onChange, options }: any) {
+  return (
+    <div className="space-y-2">
+      <label className="text-[10px] font-black uppercase tracking-widest text-gray-400">{label}</label>
+      <div className="relative">
+        <select name={name} value={value} onChange={onChange} className="w-full px-5 py-4 bg-white border-2 border-gray-100 rounded-2xl focus:border-[#C75B39] outline-none font-bold appearance-none cursor-pointer">
+          {options.map((opt: string) => <option key={opt} value={opt}>{opt}</option>)}
+        </select>
+        <ChevronDown className="absolute w-4 h-4 text-gray-400 -translate-y-1/2 pointer-events-none right-5 top-1/2" />
+      </div>
+    </div>
+  );
+}
+
+function SummaryRow({ label, value, highlight }: any) {
+  return (
+    <div className="flex justify-between text-[11px] font-bold uppercase text-white/40 tracking-wider">
+      <span>{label}</span>
+      <span className={highlight ? "text-emerald-400" : ""}>{value}</span>
+    </div>
+  );
+}
+
+function PaymentOption({ active, onClick, icon, label, description }: any) {
+  return (
+    <button type="button" onClick={onClick} className={cn("flex flex-col items-center gap-4 p-6 border-2 rounded-[2rem] transition-all w-full text-center relative", active ? "border-[#C75B39] bg-white shadow-xl -translate-y-1" : "border-gray-100 bg-white/50 hover:border-gray-200")}>
+      <div className="text-2xl">{icon}</div>
+      <span className="block text-[10px] font-black uppercase tracking-widest text-[#06392F]">{label}</span>
+      <span className="block text-[8px] font-bold text-gray-400 uppercase tracking-tighter">{description}</span>
+      {active && <CheckCircle2 className="absolute top-3 right-3 w-4 h-4 text-[#C75B39]" />}
+    </button>
   );
 }

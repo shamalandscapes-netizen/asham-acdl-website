@@ -21,12 +21,17 @@ async function getSupabase() {
 // --- GET: Fetch Single Product ---
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> } // Params is a Promise in Next.js 15
 ) {
   const supabase = await getSupabase();
-  const productId = params.id.trim();
+  const { id } = await params; // Must await params
+  const productId = id.trim();
 
-  console.log('Fetching product ID:', productId);
+  // Basic UUID validation to prevent database syntax errors
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!uuidRegex.test(productId)) {
+    return NextResponse.json({ error: 'Invalid product ID format' }, { status: 400 });
+  }
 
   const { data, error } = await supabase
     .from('products')
@@ -35,7 +40,7 @@ export async function GET(
     .single();
 
   if (error || !data) {
-    console.error('Supabase fetch error:', error);
+    console.error('Supabase fetch error:', error?.message);
     return NextResponse.json({ error: 'Product not found' }, { status: 404 });
   }
 
@@ -45,10 +50,11 @@ export async function GET(
 // --- PATCH: Update Product (Admin Only) ---
 export async function PATCH(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const supabase = await getSupabase();
-  const productId = params.id.trim();
+  const { id } = await params;
+  const productId = id.trim();
 
   try {
     const { data: { user } } = await supabase.auth.getUser();
@@ -65,11 +71,13 @@ export async function PATCH(
     }
 
     const body = await request.json();
-    console.log('Updating product:', productId, body);
+    
+    // Ensure we don't try to update the ID itself
+    const { id: _, ...updateData } = body;
 
     const { data, error } = await supabase
       .from('products')
-      .update(body)
+      .update(updateData)
       .eq('id', productId)
       .select()
       .single();
@@ -86,10 +94,11 @@ export async function PATCH(
 // --- DELETE: Remove Product (Super Admin Only) ---
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const supabase = await getSupabase();
-  const productId = params.id.trim();
+  const { id } = await params;
+  const productId = id.trim();
 
   try {
     const { data: { user } } = await supabase.auth.getUser();

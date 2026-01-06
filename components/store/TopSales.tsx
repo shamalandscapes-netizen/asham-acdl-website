@@ -2,18 +2,20 @@
 
 import { useEffect, useState } from 'react';
 import { ProductCard } from '@/components/products/product-card';
-import { Flame, TrendingUp } from 'lucide-react';
+import { Activity } from 'lucide-react';
 import { Product } from '@/types/products';
 
-// Match the ExtendedProduct requirement from your ProductCard
+// Expert Tip: We extend the base Product type to ensure our UI specific 
+// properties are recognized without breaking the base type.
 interface ExtendedProduct extends Product {
   stock: number;
   original_price?: number;
   sales_count?: number;
+  slug: string; // Ensure this is explicitly handled
 }
 
 export default function TopSales() {
-  const [products, setProducts] = useState<ExtendedProduct[]>([]); // ✅ Updated Type
+  const [products, setProducts] = useState<ExtendedProduct[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -22,13 +24,22 @@ export default function TopSales() {
         const res = await fetch('/api/products?top_sales=true');
         const data = await res.json();
         
-        // Ensure every product has a stock value to satisfy TypeScript
-        const formattedData = data.map((p: any) => ({
-          ...p,
-          stock: p.stock ?? 0, // ✅ Fallback to 0 if stock is missing in DB
-        }));
+        const formattedData = data.map((p: any) => {
+          // If the DB doesn't provide a slug, we generate one from the name
+          // to satisfy the ExtendedProduct type requirement.
+          const generatedSlug = p.slug || p.name
+            .toLowerCase()
+            .replace(/[^\w ]+/g, '')
+            .replace(/ +/g, '-');
 
-        setProducts(formattedData);
+          return {
+            ...p,
+            slug: generatedSlug,
+            stock: p.stock ?? 0,
+          };
+        });
+
+        setProducts(formattedData.slice(0, 5));
       } catch (err) {
         console.error('Failed to load top sales:', err);
       } finally {
@@ -41,31 +52,42 @@ export default function TopSales() {
   if (loading || products.length === 0) return null;
 
   return (
-    <section className="py-16">
-      <div className="flex items-center justify-between mb-10">
-        <div className="flex items-center gap-3">
-          <div className="bg-[#C75B39] p-3 rounded-2xl shadow-lg shadow-[#C75B39]/20">
-            <Flame className="text-white" size={24} />
+    <section className="py-20 border-b border-gray-100">
+      {/* HEADER SECTION */}
+      <div className="flex flex-col justify-between gap-6 mb-12 md:flex-row md:items-end">
+        <div className="space-y-2">
+          <div className="flex items-center gap-2 text-[#C75B39]">
+            <Activity size={14} strokeWidth={3} />
+            <span className="text-[10px] font-black uppercase tracking-[0.5em]">Market Analysis</span>
           </div>
-          <div>
-            <h2 className="text-3xl font-black text-[#06392F] italic">Top Sales This Week</h2>
-            <p className="text-xs font-bold tracking-widest text-gray-400 uppercase">Most popular materials</p>
-          </div>
-        </div>
-        <div className="hidden md:flex items-center gap-2 text-[#C75B39] font-black text-sm uppercase tracking-tighter">
-          <TrendingUp size={16} /> Live Trends
+          <h2 className="text-5xl font-black text-[#06392F] uppercase tracking-tighter">
+            PROVEN <span className="text-gray-300">DEMAND</span>
+          </h2>
+          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+            Highest volume materials and designs this period
+          </p>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+      {/* TECHNICAL GRID */}
+      <div className="grid grid-cols-1 gap-px bg-gray-100 border border-gray-100 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 overflow-hidden rounded-3xl shadow-2xl shadow-[#06392F]/5">
         {products.map((product, index) => (
-          <div key={product.id} className="relative">
-            {/* Rank Badge */}
-            <div className="absolute -top-3 -left-3 z-10 bg-[#06392F] text-white w-10 h-10 rounded-full flex items-center justify-center font-black border-4 border-gray-50 shadow-xl">
-              #{index + 1}
+          <div key={product.id} className="relative p-4 transition-colors bg-white group hover:bg-gray-50">
+            {/* LARGE INDEX NUMBER */}
+            <div className="absolute z-10 pointer-events-none top-6 right-6">
+              <span className="text-7xl font-black text-gray-100 leading-none transition-colors group-hover:text-[#C75B39]/10">
+                0{index + 1}
+              </span>
             </div>
-            {/* Now satisfies ExtendedProduct requirement */}
-            <ProductCard product={product} />
+            
+            <div className="relative z-20">
+              <ProductCard product={product} />
+            </div>
+
+            <div className="mt-4 flex items-center justify-between text-[9px] font-black uppercase tracking-widest text-gray-400 border-t border-gray-50 pt-4">
+              <span>Performance Rank</span>
+              <span className="text-[#06392F]">Top Tier</span>
+            </div>
           </div>
         ))}
       </div>

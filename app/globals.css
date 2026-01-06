@@ -6,6 +6,8 @@
   --foreground-rgb: 0, 0, 0;
   --background-start-rgb: 255, 255, 255;
   --background-end-rgb: 255, 255, 255;
+  --asham-green: 6, 57, 47;
+  --asham-orange: 199, 91, 57;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -16,6 +18,7 @@
   }
 }
 
+/* --- Base Styles --- */
 body {
   color: rgb(var(--foreground-rgb));
   background: linear-gradient(
@@ -24,25 +27,64 @@ body {
       rgb(var(--background-end-rgb))
     )
     rgb(var(--background-start-rgb));
+  min-height: 100vh;
+  scroll-behavior: smooth;
+}
+
+/* --- Asham Custom Scrollbar --- */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+::-webkit-scrollbar-thumb {
+  background: #06392f;
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #c75b39;
 }
 
 @layer utilities {
   .text-balance {
     text-wrap: balance;
   }
+
+  /* --- Premium Progress Bar Stripe Animation --- */
+  @keyframes stripe {
+    from {
+      background-position: 1rem 0;
+    }
+    to {
+      background-position: 0 0;
+    }
+  }
+
+  .animate-stripe {
+    animation: stripe 1s linear infinite;
+  }
 }
+
+/* --- Print Protection & Styling --- */
 @media print {
-  img {
+  /* Hide interactive/unnecessary elements */
+  img, button, nav, footer, .no-print {
     display: none !important;
   }
   
-  /* Or show a warning instead */
-  body::after {
-    content: "Printing this document is prohibited.";
-    font-size: 24pt;
-    color: red;
-    display: block;
+  /* Ensure text is black and background is white for ink saving */
+  body {
+    background: white !important;
+    color: black !important;
+  }
+
+  /* Custom Print Warning (Optional - keep or remove based on preference) */
+  .print-only-warning {
+    display: block !important;
     text-align: center;
-    margin-top: 20%;
+    color: #c75b39;
+    font-weight: bold;
+    margin-bottom: 20px;
   }
 }

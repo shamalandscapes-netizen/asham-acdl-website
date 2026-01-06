@@ -4,7 +4,9 @@ import { CartItem } from '@/types/cart';
 
 interface CartState {
   items: CartItem[];
-  totalPrice: number;
+  // Derived state (getters)
+  getTotalPrice: () => number;
+  getItemCount: () => number;
   
   // Actions
   addItem: (item: CartItem) => void;
@@ -17,75 +19,57 @@ export const useCartStore = create<CartState>()(
   persist(
     (set, get) => ({
       items: [],
-      totalPrice: 0,
+
+      // Derived State: Use functions to ensure we always have fresh values
+      getTotalPrice: () => {
+        return get().items.reduce((total, item) => total + item.price * item.quantity, 0);
+      },
+
+      getItemCount: () => {
+        return get().items.reduce((total, item) => total + item.quantity, 0);
+      },
 
       addItem: (item) => {
-        const currentItems = get().items;
-        const existingItem = currentItems.find((i) => i.id === item.id);
+        const items = get().items;
+        const existingItem = items.find((i) => i.id === item.id);
 
         if (existingItem) {
-          // If item exists, just increase quantity
-          const updatedItems = currentItems.map((i) =>
-            i.id === item.id 
-              ? { ...i, quantity: i.quantity + 1 }
-              : i
+          // Increase quantity, but you could also add a 'max_stock' check here
+          const updatedItems = items.map((i) =>
+            i.id === item.id ? { ...i, quantity: i.quantity + 1 } : i
           );
-          set({
-            items: updatedItems,
-            totalPrice: calculateTotal(updatedItems),
-          });
+          set({ items: updatedItems });
         } else {
-          // Add new item with quantity 1
-          const newItem = { ...item, quantity: 1 };
-          const updatedItems = [...currentItems, newItem];
-          set({
-            items: updatedItems,
-            totalPrice: calculateTotal(updatedItems),
-          });
+          // Add new item with default quantity of 1 if not specified
+          set({ items: [...items, { ...item, quantity: item.quantity || 1 }] });
         }
       },
 
       removeItem: (itemId) => {
-        const updatedItems = get().items.filter((i) => i.id !== itemId);
-        set({
-          items: updatedItems,
-          totalPrice: calculateTotal(updatedItems),
-        });
+        set({ items: get().items.filter((i) => i.id !== itemId) });
       },
 
       updateQuantity: (itemId, quantity) => {
-        const currentItems = get().items;
+        const items = get().items;
         
-        // If quantity is less than 1, remove the item
-        if (quantity < 1) {
-          const updatedItems = currentItems.filter((i) => i.id !== itemId);
-          set({
-            items: updatedItems,
-            totalPrice: calculateTotal(updatedItems),
-          });
+        // Remove item if quantity drops to 0
+        if (quantity <= 0) {
+          set({ items: items.filter((i) => i.id !== itemId) });
           return;
         }
 
-        const updatedItems = currentItems.map((i) =>
-          i.id === itemId ? { ...i, quantity } : i
-        );
-
         set({
-          items: updatedItems,
-          totalPrice: calculateTotal(updatedItems),
+          items: items.map((i) => (i.id === itemId ? { ...i, quantity } : i)),
         });
       },
 
-      clearCart: () => set({ items: [], totalPrice: 0 }),
+      clearCart: () => set({ items: [] }),
     }),
     {
-      name: 'cart-storage', // unique name for localStorage key
+      name: 'asham-cart-storage', // Specific naming prevents collisions
       storage: createJSONStorage(() => localStorage),
+      // Optimization: Only persist the items, not derived states
+      partialize: (state) => ({ items: state.items }),
     }
   )
 );
-
-// Helper to calculate total price
-function calculateTotal(items: CartItem[]): number {
-  return items.reduce((total, item) => total + item.price * item.quantity, 0);
-}

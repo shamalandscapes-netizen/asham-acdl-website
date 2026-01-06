@@ -1,113 +1,67 @@
-﻿import type { Metadata } from "next";
+﻿'use client';
+
 import { Montserrat } from "next/font/google";
 import { Toaster } from "react-hot-toast";
+import { useEffect } from "react";
 import "./globals.css";
 
 // ✅ Components
 import Navbar from "@/components/layout/Navbar"; 
 import Footer from "@/components/layout/Footer"; 
 import { CartDrawer } from '@/components/cart/cart-drawer';
+import { QuickViewModal } from '@/components/products/quick-view-modal';
+import { SearchOverlay } from '@/components/search/search-overlay';
 
-// ✅ Initialize Montserrat with variable for Tailwind/Global CSS access
+// ✅ Store
+import { useUIStore } from '@/store/ui-store';
+
 const montserrat = Montserrat({ 
   subsets: ["latin"],
   weight: ['300', '400', '500', '700', '900'],
   variable: '--font-montserrat',
 });
 
-// ✅ Advanced Multi-Regional SEO Metadata
-export const metadata: Metadata = {
-  title: {
-    default: "Asham Design Construction | NCA 6 Firm Kenya & Eastern Uganda",
-    template: "%s | Asham Construction Ltd"
-  },
-  description: "Premier construction & architectural firm specializing in NCA 6 structural engineering, NEMA-compliant assessments, and industrial building across Kenya and Eastern Uganda.",
-  keywords: [
-    "NCA 6 Contractors Kenya", 
-    "Architects in Kakamega", 
-    "Construction companies in Mbale", 
-    "Structural Engineering Uganda", 
-    "NEMA Environmental Impact Assessment",
-    "Building Construction material supply Western Kenya"
-  ],
-  metadataBase: new URL('https://ashamconstruction.co.ke'),
-  alternates: {
-    canonical: '/',
-  },
-  openGraph: {
-    type: 'website',
-    locale: 'en_KE',
-    url: 'https://ashamconstruction.co.ke',
-    siteName: 'Asham Design Construction Ltd',
-    images: [{
-      url: '/api/og', // ✅ Switched to the dynamic Nerd-tier OG generator
-      width: 1200,
-      height: 630,
-      alt: 'Asham Design Construction Architectural & Structural Engineering',
-    }],
-  },
-  icons: {
-    icon: '/favicon.png', 
-  },
-};
-
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const closeAll = useUIStore((state) => state.closeAll);
+
+  // ✅ 15-Year Pro Tip: Global Event Orchestration
+  // Handles 'Esc' to close any open UI layer and prevents "z-index soup"
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') closeAll();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [closeAll]);
+
   return (
     <html lang="en" className="scroll-smooth">
-      <head>
-        {/* Schema.org JSON-LD for Search Engines - Strategic Regional Authority */}
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
-              "@context": "https://schema.org",
-              "@type": "ConstructionBusiness",
-              "name": "Asham Design Construction Ltd",
-              "image": "https://ashamconstruction.co.ke/assets/images/logos/logo.png",
-              "areaServed": [
-                { "@type": "State", "name": "Western Kenya" },
-                { "@type": "Country", "name": "Kenya" },
-                { "@type": "State", "name": "Eastern Region, Uganda" }
-              ],
-              "address": {
-                "@type": "PostalAddress",
-                "addressLocality": "Kakamega",
-                "addressCountry": "KE"
-              },
-              "knowsAbout": [
-                "NCA 6 Regulations", 
-                "NEMA Compliance", 
-                "BIM Design", 
-                "Architectural Design",
-                "Structural Engineering"
-              ]
-            })
-          }}
-        />
-      </head>
-      <body className={`${montserrat.variable} ${montserrat.className} bg-[#FDFDFD] text-[#06392F] antialiased`}>
-        <div className="flex flex-col min-h-screen">
-          {/* Top Navigation Bar */}
+      <body className={`${montserrat.variable} ${montserrat.className} bg-[#FDFDFD] text-[#06392F] antialiased selection:bg-[#06392F] selection:text-white`}>
+        
+        {/* ✅ Main Layout Container */}
+        <div className="relative flex flex-col min-h-screen">
+          
           <Navbar />
 
-          {/* Main Content Area */}
           <main className="flex-grow">
             {children}
           </main>
 
-          {/* Bottom Footer */}
           <Footer />
 
-          {/* Global UI Components */}
+          {/* ✅ Global UI Layers (Managed by useUIStore) */}
+          {/* Order matters for Z-Index: Search > QuickView > Cart */}
+          <SearchOverlay />
+          <QuickViewModal />
           <CartDrawer />
           
-          {/* Toast Notifications Styled for Architectural Aesthetic */}
+          {/* ✅ Branded Notification System */}
           <Toaster 
-            position="top-center" 
+            position="bottom-right" // Shifted to bottom-right (Standard eCommerce UX)
             reverseOrder={false} 
             toastOptions={{
               duration: 4000,
@@ -115,21 +69,25 @@ export default function RootLayout({
                 background: '#06392F',
                 color: '#fff',
                 fontFamily: 'var(--font-montserrat)',
-                fontSize: '12px',
-                fontWeight: 'bold',
+                fontSize: '11px',
+                fontWeight: '900',
                 textTransform: 'uppercase',
-                letterSpacing: '0.15em',
-                borderRadius: '8px',
-                border: '1px solid rgba(255,255,255,0.1)'
+                letterSpacing: '0.2em',
+                padding: '16px 24px',
+                borderRadius: '12px',
+                border: '1px solid rgba(255,255,255,0.1)',
+                boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)',
               },
               success: {
+                iconTheme: { primary: '#10B981', secondary: '#fff' },
                 style: {
-                  background: '#ECFDF5', 
-                  color: '#064E3B',      
-                  border: '1px solid #10B981'
+                  background: '#F0FDF4', // Very light green
+                  color: '#06392F',      
+                  border: '1px solid #10B981',
                 },
               },
               error: {
+                iconTheme: { primary: '#EF4444', secondary: '#fff' },
                 style: {
                   background: '#FEF2F2', 
                   color: '#991B1B',      

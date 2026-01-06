@@ -2,132 +2,136 @@ import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 
-// Helper to get Supabase Client
-function getSupabase() {
-  const cookieStore = cookies();
-  return createServerClient(
+// --- TYPES & INTERFACES ---
+interface CartItem {
+  id: string;
+  quantity: number;
+}
+
+interface OrderRequestPayload {
+  customer: {
+    fullName: string;
+    email: string;
+    phone: string;
+    address: string;
+    city: string;
+    county: string;
+  };
+  items: CartItem[];
+  paymentMethod: 'mpesa' | 'stripe' | 'paypal';
+  projectName?: string;
+}
+
+export async function POST(request: Request) {
+  const cookieStore = await cookies();
+  
+  const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        get(name) { return cookieStore.get(name)?.value; }
-      }
+        get(name) { return cookieStore.get(name)?.value },
+        set(name, value, options) { cookieStore.set({ name, value, ...options }) },
+        remove(name, options) { cookieStore.set({ name, value: '', ...options }) },
+      },
     }
   );
-}
-
-// --- POST: Create a New Order ---
-export async function POST(request: Request) {
-  const supabase = getSupabase();
 
   try {
-    // 1. Authenticate User
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    // 1. Authentication Check
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
 
-    // 2. Fetch User's Cart Items from DB
-    // We fetch from DB (not trust client body) to ensure prices are correct
-    const { data: cartItems, error: cartError } = await supabase
-      .from('cart')
-      .select(`
-        quantity,
-        product:products (
-          id,
-          name,
-          price,
-          type
-        )
-      `)
-      .eq('user_id', user.id);
+    // 2. Payload Validation
+    const body = (await request.json()) as OrderRequestPayload;
+    const { customer, items, paymentMethod, projectName } = body;
 
-    if (cartError || !cartItems || cartItems.length === 0) {
-      return NextResponse.json({ error: 'Cart is empty' }, { status: 400 });
+    if (!items?.length) {
+      return NextResponse.json({ error: 'Your manifest is empty' }, { status: 400 });
     }
 
-    // 3. Calculate Total & Prepare Order Items
-    let totalAmount = 0;
-    const orderItems = cartItems.map((item: any) => {
-      const price = item.product.price;
-      const quantity = item.quantity;
-      totalAmount += price * quantity;
+    // 3. Secure Price Verification (Server-Side)
+    const itemIds = items.map((item: CartItem) => item.id);
+    const { data: dbProducts, error: dbError } = await supabase
+      .from('products')
+      .select('id, price, name')
+      .in('id', itemIds);
 
-      // We save a snapshot of the item details in the order
-      // securely in case the product name/price changes later.
+    if (dbError || !dbProducts || dbProducts.length === 0) {
+      throw new Error("Could not verify material prices from the database.");
+    }
+
+    // 4. Financial Calculations
+    let rawSubtotal = 0;
+    const verifiedLineItems = items.map((item: CartItem) => {
+      const product = dbProducts.find((p) => p.id === item.id);
+      if (!product) throw new Error(`Product ${item.id} no longer exists.`);
+      
+      const price = parseFloat(product.price.toString());
+      const quantity = Math.max(1, item.quantity); // Ensure at least 1
+      rawSubtotal += price * quantity;
+
       return {
-        id: item.product.id,
-        name: item.product.name,
-        price: price,
+        product_id: product.id,
         quantity: quantity,
-        type: item.product.type
+        unit_price: price, // Snapshots the price at purchase time
       };
     });
 
-    // 4. Create the Order in DB
+    const subtotal = Math.round(rawSubtotal * 100) / 100;
+    const taxAmount = Math.round((subtotal * 0.16) * 100) / 100;
+    const totalAmount = subtotal + taxAmount;
+
+    if (subtotal <= 0) {
+      return NextResponse.json({ error: 'Invalid calculation. Subtotal is zero.' }, { status: 400 });
+    }
+
+    // 5. Insert Main Order
     const { data: order, error: orderError } = await supabase
       .from('orders')
       .insert({
-        user_id: user.id,
+        customer_id: user.id,
+        subtotal: subtotal,
+        tax_amount: taxAmount,
         total_amount: totalAmount,
-        status: 'pending', // Waiting for payment
-        items: orderItems, // Save the JSON snapshot
-        payment_method: 'pending'
+        shipping_address: `${customer.address}, ${customer.city}, ${customer.county}`,
+        project_name: projectName || 'General Acquisition',
+        status: 'pending',
+        payment_status: 'pending',
+        payment_method: paymentMethod
       })
       .select()
       .single();
 
     if (orderError) throw orderError;
 
-    // 5. Clear the Cart (Since order is created)
-    await supabase
-      .from('cart')
-      .delete()
-      .eq('user_id', user.id);
+    // 6. Insert Line Items (order_items table)
+    const orderItemsPayload = verifiedLineItems.map((item) => ({
+      ...item,
+      order_id: order.id,
+    }));
 
-    // 6. Return Order ID (Frontend will use this to trigger M-Pesa)
+    const { error: itemsError } = await supabase
+      .from('order_items')
+      .insert(orderItemsPayload);
+
+    if (itemsError) {
+      console.error("Non-fatal: order_items link failed", itemsError);
+    }
+
+    // 7. Success Response
     return NextResponse.json({ 
+      success: true,
       orderId: order.id, 
       total: totalAmount,
-      message: 'Order created successfully' 
+      paymentMethod,
+      message: paymentMethod === 'mpesa' ? 'STK Push initiated' : 'Order logged successfully'
     });
 
-  } catch (error: any) {
-    console.error('Order Creation Error:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (err: any) {
+    console.error("Order API Crash:", err.message);
+    return NextResponse.json({ error: err.message || 'Internal Server Error' }, { status: 500 });
   }
-}
-
-// --- GET: List Orders (Admin gets all, User gets theirs) ---
-export async function GET(request: Request) {
-  const supabase = getSupabase();
-  const { data: { user } } = await supabase.auth.getUser();
-
-  if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
-  // Check Role
-  const { data: profile } = await supabase
-    .from('users')
-    .select('role')
-    .eq('id', user.id)
-    .single();
-
-  const isAdmin = ['super_admin', 'staff', 'accounts'].includes(profile?.role);
-
-  let query = supabase.from('orders').select('*').order('created_at', { ascending: false });
-
-  // If NOT admin, only show own orders
-  if (!isAdmin) {
-    query = query.eq('user_id', user.id);
-  }
-
-  const { data: orders, error } = await query;
-
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
-
-  return NextResponse.json(orders);
 }
