@@ -30,7 +30,7 @@ export const useDownloads = () => {
     // that links a user_id to a product/file entry.
     // Replace 'user_downloads' and column names with your actual Supabase schema.
     const { data, error: dbError } = await supabase
-      .from('user_downloads') 
+      .from('user_downloads' as any) 
       .select(`
         id,
         purchased_on,
