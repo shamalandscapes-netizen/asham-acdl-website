@@ -115,7 +115,7 @@ export default function CartPage() {
                       <div className="flex items-center w-full col-span-7 gap-6">
                         <div className="relative w-24 h-24 overflow-hidden rounded-2xl bg-gray-50 border border-gray-100 group-hover:border-[#C75B39]/30 transition-colors shrink-0">
                           <Image 
-                            src={item.image || '/placeholder.png'} 
+                            src={(item as any).image || '/placeholder.png'} 
                             alt={item.name}
                             fill
                             className="object-cover transition-transform duration-700 group-hover:scale-110"
