@@ -77,8 +77,8 @@ export async function handleMpesaCallback(request: NextRequest) {
         .from('mpesa_transactions')
         .update({ 
           status: transactionStatus,
-          mpesa_receipt_number: transactionDetails.MpesaReceiptNumber,
-          transaction_amount: transactionDetails.TransactionAmount,
+          mpesa_receipt_number: transactionDetails?.MpesaReceiptNumber,
+          transaction_amount: transactionDetails?.TransactionAmount,
           final_result_desc: stkCallback.ResultDesc,
         })
         .eq('checkout_request_id', checkoutRequestID);
@@ -121,12 +121,12 @@ export async function handleMpesaCallback(request: NextRequest) {
 /**
  * Helper function to extract key transaction details from the cryptic Daraja metadata.
  */
-function extractTransactionDetails(metadata?: MpesaCallbackBody['Body']['stkCallback']['CallbackMetadata']['Item']): TransactionDetails | null {
+function extractTransactionDetails(metadata?: Array<{ Name: string; Value: string | number }>): TransactionDetails | null {
   if (!metadata) return null;
 
   let details: Partial<TransactionDetails> = {};
 
-  metadata.forEach(item => {
+  metadata.forEach((item: { Name: any; Value: any; }) => {
     switch (item.Name) {
       case 'MpesaReceiptNumber':
         details.MpesaReceiptNumber = String(item.Value);
