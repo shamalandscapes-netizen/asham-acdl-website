@@ -33,7 +33,7 @@ export default function UserDashboardLayout({ children }: { children: React.Reac
         router.push('/login');
         return;
       }
-      const { data } = await supabase.from('users').select('full_name').eq('id', user.id).single();
+      const { data } = await supabase.from('user_profiles').select('full_name').eq('id', user.id).single();
       if (data) setUserName(data.full_name || 'User');
       setLoading(false);
     }
@@ -47,7 +47,7 @@ export default function UserDashboardLayout({ children }: { children: React.Reac
 
   if (loading) {
     return (
-      <div className="h-screen flex flex-col items-center justify-center bg-white">
+      <div className="flex flex-col items-center justify-center h-screen bg-white">
         <Loader2 className="animate-spin text-[#06392F]" size={40} />
         <p className="mt-4 font-medium text-gray-500 animate-pulse">Building your space...</p>
       </div>
@@ -104,7 +104,7 @@ export default function UserDashboardLayout({ children }: { children: React.Reac
                {userName.charAt(0)}
              </div>
              <div className="overflow-hidden">
-               <p className="text-xs text-white/40 uppercase font-bold tracking-widest">Client</p>
+               <p className="text-xs font-bold tracking-widest uppercase text-white/40">Client</p>
                <p className="text-sm font-bold truncate">{userName}</p>
              </div>
           </div>
@@ -121,19 +121,19 @@ export default function UserDashboardLayout({ children }: { children: React.Reac
       <div className="flex flex-col flex-1 min-w-0">
         
         {/* Outstanding Header */}
-        <header className="sticky top-0 z-30 flex items-center justify-between h-20 px-4 bg-white/80 backdrop-blur-md border-b border-gray-200 md:px-8">
+        <header className="sticky top-0 z-30 flex items-center justify-between h-20 px-4 border-b border-gray-200 bg-white/80 backdrop-blur-md md:px-8">
           <div className="flex items-center gap-4">
             <button 
               type="button"
               aria-label="Open menu"
               onClick={() => setIsMobileMenuOpen(true)} 
-              className="p-2 text-gray-600 lg:hidden hover:bg-gray-100 rounded-lg"
+              className="p-2 text-gray-600 rounded-lg lg:hidden hover:bg-gray-100"
             >
               <Menu size={24} />
             </button>
             
             {/* Dynamic Breadcrumb */}
-            <div className="hidden md:flex items-center gap-2 text-sm font-medium">
+            <div className="items-center hidden gap-2 text-sm font-medium md:flex">
               <span className="text-gray-400">Dashboard</span>
               <ChevronRight size={14} className="text-gray-300" />
               <span className="text-[#06392F] capitalize">{getPageTitle()}</span>

@@ -18,7 +18,7 @@ export default function TeamPage() {
   async function fetchUsers() {
     setLoading(true);
     const { data, error } = await supabase
-      .from('users')
+      .from('user_profiles')
       .select('*')
       .order('full_name', { ascending: true });
 
@@ -31,8 +31,8 @@ export default function TeamPage() {
   const changeRole = async (userId: string, newRole: string) => {
     setUpdatingId(userId);
     const { error } = await supabase
-      .from('users')
-      .update({ role: newRole })
+      .from('user_profiles')
+      .update({ role: newRole } as any)
       .eq('id', userId);
 
     if (!error) {
@@ -51,10 +51,10 @@ export default function TeamPage() {
   );
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
+    <div className="space-y-8 duration-500 animate-in fade-in">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-black text-gray-900 italic uppercase tracking-tighter">Team & Permissions</h1>
+        <h1 className="text-3xl italic font-black tracking-tighter text-gray-900 uppercase">Team & Permissions</h1>
         <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Assign roles and access levels to users</p>
       </div>
 
@@ -71,17 +71,17 @@ export default function TeamPage() {
           </thead>
           <tbody className="divide-y divide-gray-50">
             {users.map((user) => (
-              <tr key={user.id} className="hover:bg-gray-50/30 transition-colors">
+              <tr key={user.id} className="transition-colors hover:bg-gray-50/30">
                 <td className="px-8 py-6">
                   <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-400">
+                    <div className="flex items-center justify-center w-10 h-10 text-gray-400 bg-gray-100 rounded-full">
                       <UserCircle size={24} />
                     </div>
                     <span className="font-bold text-gray-900">{user.full_name || 'Unnamed User'}</span>
                   </div>
                 </td>
                 <td className="px-8 py-6">
-                  <div className="flex items-center gap-2 text-gray-500 text-sm">
+                  <div className="flex items-center gap-2 text-sm text-gray-500">
                     <Mail size={14} className="text-gray-300" />
                     {user.email}
                   </div>

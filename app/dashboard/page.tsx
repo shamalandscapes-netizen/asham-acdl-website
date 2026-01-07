@@ -40,9 +40,9 @@ export default function UserDashboard() {
 
         // Fetch Profile & Orders in parallel for performance
         const [profileRes, ordersRes] = await Promise.all([
-          supabase.from('users').select('*').eq('id', user.id).single(),
-          supabase.from('orders').select('*').eq('customer_id', user.id).order('created_at', { ascending: false })
-        ]);
+          (supabase as any).from('user_profiles').select('*').eq('id', user.id).single(),
+          (supabase as any).from('orders').select('*').eq('customer_id', user.id).order('created_at', { ascending: false })
+          ]);
 
         if (profileRes.data) setProfile(profileRes.data);
         
