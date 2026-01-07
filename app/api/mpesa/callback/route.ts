@@ -22,7 +22,10 @@ export async function POST(request: Request) {
     if (resultCode !== 0) {
       await supabaseAdmin
         .from('orders')
-        .update({ payment_status: 'Cancelled' }) // Matches your DB check constraint
+        .update({ 
+          payment_status: 'Cancelled',
+          status: 'cancelled' // Also update operational status
+        })
         .eq('checkout_request_id', checkoutReqId);
 
       return NextResponse.json({ ResultCode: 0, ResultDesc: 'Failure Logged' });
@@ -33,18 +36,20 @@ export async function POST(request: Request) {
     const receipt = metaItems.find((i: any) => i.Name === 'MpesaReceiptNumber')?.Value;
     const phone = metaItems.find((i: any) => i.Name === 'PhoneNumber')?.Value;
 
-    // 3. Update Order to 'Completed'
+    // 3. Update Order and move to "Processing" for Noel to handle
     const { error } = await supabaseAdmin
       .from('orders')
       .update({ 
-        payment_status: 'Completed', // Matches your DB check constraint
+        payment_status: 'Completed',
+        status: 'processing', // Move to processing so Noel knows to prepare goods
         mpesa_receipt: receipt,
-        guest_phone: phone?.toString() // Sync phone used for payment
+        guest_phone: phone?.toString() 
       })
       .eq('checkout_request_id', checkoutReqId);
 
     if (error) {
       console.error('Database Update Error:', error);
+      // We still return 0 to Safaricom so they stop retrying
       return NextResponse.json({ ResultCode: 0, ResultDesc: 'DB Sync Error' });
     }
 

@@ -1,15 +1,9 @@
 ﻿import { createServerClient } from '@supabase/ssr'
-import { NextResponse } from 'next/server'
-import type { NextRequest } from 'next/server'
+import { NextResponse, type NextRequest } from 'next/server'
 
 export async function middleware(request: NextRequest) {
-  const path = request.nextUrl.pathname
-  
-  // Create an initial response
   let response = NextResponse.next({
-    request: {
-      headers: request.headers,
-    },
+    request: { headers: request.headers },
   })
 
   const supabase = createServerClient(
@@ -17,21 +11,10 @@ export async function middleware(request: NextRequest) {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        getAll() {
-          return request.cookies.getAll()
-        },
+        getAll() { return request.cookies.getAll() },
         setAll(cookiesToSet) {
-          // Update request cookies so subsequent server components see them
           cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
-          
-          // IMPORTANT: Update the EXISTING response headers/cookies
-          // Do NOT re-initialize NextResponse.next() here
-          response = NextResponse.next({
-            request: {
-              headers: request.headers,
-            },
-          })
-          
+          response = NextResponse.next({ request })
           cookiesToSet.forEach(({ name, value, options }) =>
             response.cookies.set(name, value, options)
           )
@@ -40,55 +23,45 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  // This refreshes the session if expired
   const { data: { user } } = await supabase.auth.getUser()
+  
+  // Extract role from metadata or default to customer
+  const userRole = user?.app_metadata?.role || user?.user_metadata?.role || 'customer'
+  const path = request.nextUrl.pathname
 
-  // Route Groups
+  // DEBUGGING: Watch your terminal to see why Noel is being redirected
+  console.log(`MW Trace: ${user?.email || 'Guest'} -> ${path} [Role: ${userRole}]`)
+
   const isAuthPage = path.startsWith('/login') || path.startsWith('/register')
   const isAdminPage = path.startsWith('/admin')
-  const isDashboardPage = path.startsWith('/dashboard')
-  // Optimization: Treat /checkout as a protected dashboard-level page
-  const isProtectedPage = isAdminPage || isDashboardPage || path.startsWith('/checkout')
+  const isProtectedPage = isAdminPage || path.startsWith('/dashboard') || path.startsWith('/checkout')
 
-  // 3. Logic: Not Logged In
-  if (!user) {
-    if (isProtectedPage) {
-      const redirectUrl = new URL('/login', request.url)
-      redirectUrl.searchParams.set('redirect', path)
-      return NextResponse.redirect(redirectUrl)
+  // Logic 1: Guest trying to access protected pages
+  if (!user && isProtectedPage) {
+    const url = new URL('/login', request.url)
+    url.searchParams.set('redirect', path)
+    return NextResponse.redirect(url)
+  }
+
+  // Logic 2: Logged in users
+  if (user) {
+    const adminRoles = ['super_admin', 'admin', 'staff', 'it_admin']
+    const isElevated = adminRoles.includes(userRole)
+
+    // Kick non-admins away from /admin
+    if (isAdminPage && !isElevated) {
+      return NextResponse.redirect(new URL('/dashboard', request.url))
     }
-    return response
-  }
 
-  // 4. Logic: Logged In
-  const userRole = user.user_metadata?.role || 'customer' 
-  const adminRoles = ['super_admin', 'admin', 'staff', 'accountant', 'it_admin']
-  const isElevatedUser = adminRoles.includes(userRole)
-
-  // Block non-admins from /admin
-  if (isAdminPage && !isElevatedUser) {
-    return NextResponse.redirect(new URL('/dashboard', request.url))
-  }
-
-  // Prevent logged-in users from seeing Auth pages
-  if (isAuthPage) {
-    const destination = isElevatedUser ? '/admin' : '/dashboard'
-    return NextResponse.redirect(new URL(destination, request.url))
+    // Kick logged-in users away from /login
+    if (isAuthPage) {
+      return NextResponse.redirect(new URL(isElevated ? '/admin' : '/dashboard', request.url))
+    }
   }
 
   return response
 }
 
 export const config = {
-  matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - api/webhooks (Stripe/M-Pesa)
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - Public images (svg, png, etc)
-     */
-    '/((?!api/webhooks|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
-  ],
+  matcher: ['/((?!api/webhooks|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)'],
 }

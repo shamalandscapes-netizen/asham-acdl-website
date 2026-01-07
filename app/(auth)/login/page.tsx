@@ -49,7 +49,20 @@ function LoginForm() {
   const [otpCode, setOtpCode] = useState('');
   const [isOtpSent, setIsOtpSent] = useState(false);
 
-  // Catch errors from the Auth Callback (Expert Implementation)
+  // Helper: Role-based Redirection Logic
+  const handleRoleRedirect = (user: any) => {
+    const userRole = user?.app_metadata?.role || user?.user_metadata?.role || 'customer';
+    const adminRoles = ['super_admin', 'admin', 'staff', 'it_admin'];
+    const isElevated = adminRoles.includes(userRole);
+
+    // If middleware sent them here with a specific destination, use it.
+    // Otherwise, route based on role.
+    const destination = requestedRedirect || (isElevated ? '/admin' : '/dashboard');
+    
+    router.push(destination);
+    router.refresh(); // Crucial to update Server Components
+  };
+
   useEffect(() => {
     if (errorParam === 'auth-callback-failed') {
       setError('The security link has expired or is invalid. Please try again.');
@@ -85,11 +98,9 @@ function LoginForm() {
       const { data, error: authError } = await supabase.auth.signInWithPassword({ email, password });
       if (authError) throw authError;
 
-      const role = data.user?.user_metadata?.role || 'customer';
-      const dest = requestedRedirect || (role === 'admin' ? '/admin' : '/dashboard');
-      
-      router.push(dest);
-      router.refresh();
+      if (data.user) {
+        handleRoleRedirect(data.user);
+      }
     } catch (err: any) {
       setError(err?.message || 'Invalid email or password.');
       setLoading(false);
@@ -107,17 +118,19 @@ function LoginForm() {
         if (error) throw error;
         setIsOtpSent(true);
       } else {
-        const { error } = await supabase.auth.verifyOtp({
+        const { data, error } = await supabase.auth.verifyOtp({
           phone: phoneNumber,
           token: otpCode,
           type: 'sms',
         });
         if (error) throw error;
-        router.push(requestedRedirect || '/dashboard');
-        router.refresh();
+        
+        if (data.user) {
+          handleRoleRedirect(data.user);
+        }
       }
     } catch (err: any) {
-      setError(err?.message || 'Phone authentication failed. Check your number format.');
+      setError(err?.message || 'Phone authentication failed.');
     } finally {
       setLoading(false);
     }
@@ -193,7 +206,7 @@ function LoginForm() {
           <div>
             <div className="flex items-center justify-between mb-1.5">
               <label className="block text-xs font-bold text-gray-700 uppercase">Password</label>
-              <Link href="/forgot-password" className="text-xs font-bold text-[#06392F] hover:underline">Reset?</Link>
+              <Link href="/forgot-password" className={`text-xs font-bold text-[#06392F] hover:underline ${loading ? 'opacity-50 pointer-events-none' : ''}`}>Reset?</Link>
             </div>
             <div className="relative">
               <Lock className="absolute w-5 h-5 text-gray-400 -translate-y-1/2 left-3 top-1/2" />
@@ -251,7 +264,6 @@ function LoginForm() {
                 <input
                   type="text"
                   required
-                  maxLength={6}
                   value={otpCode}
                   onChange={(e) => setOtpCode(e.target.value)}
                   className="block w-full pl-12 pr-4 py-4 text-center tracking-[0.5em] text-2xl font-black border-2 border-gray-200 rounded-xl focus:border-[#06392F] outline-none"
@@ -273,7 +285,7 @@ function LoginForm() {
         </form>
       )}
 
-      {/* Expert Error Notification System */}
+      {/* Error Notification */}
       {error && (
         <div className="flex items-start gap-3 p-4 mt-6 border border-red-50 rounded-xl bg-red-50/50 animate-in slide-in-from-bottom-2">
           <AlertCircle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />

@@ -37,7 +37,7 @@ function SuccessContent() {
           View Order Status
         </Link>
         <Link 
-          href="/shop" 
+          href="/products" 
           className="w-full py-3 font-medium text-gray-600 transition hover:text-gray-900"
         >
           Continue Shopping
