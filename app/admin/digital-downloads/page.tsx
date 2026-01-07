@@ -30,7 +30,7 @@ export default function DigitalDownloadsPage() {
       .eq('type', 'digital')
       .order('name');
     
-    if (data) setProducts(data);
+    if (data) setProducts(data as any);
     setLoading(false);
   };
 
@@ -61,7 +61,7 @@ export default function DigitalDownloadsPage() {
       // B. Link file to the Product in Database
       const { error: dbError } = await supabase
         .from('products')
-        .update({ file_path: filePath })
+        .update({ file_path: filePath } as any)
         .eq('id', selectedProduct);
 
       if (dbError) throw dbError;
