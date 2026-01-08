@@ -42,7 +42,6 @@ export default function ProductsPage() {
 
   const supabase = createClient();
 
-  // FIX: Added 'as any' to bypass strict Type Checking during Vercel Build
   async function fetchProducts() {
     const { data, error } = await (supabase as any)
       .from('products')
@@ -95,7 +94,7 @@ export default function ProductsPage() {
       image_url: product.image_url || '',
       gallery: product.gallery || [],
       features: product.features ? product.features.join(', ') : '',
-      is_digital: product.is_digital || false,
+      is_digital: !!product.is_digital, // Ensure boolean
       file_path: product.file_path || '',
       stock: (product.stock_quantity || product.stock || 0).toString(),
     });
@@ -119,6 +118,9 @@ export default function ProductsPage() {
     try {
       const featuresArray = formData.features.split(',').map(f => f.trim()).filter(Boolean);
       
+      // Logic: Digital products don't need inventory tracking, so we set a high default
+      const calculatedStock = formData.is_digital ? 999999 : parseInt(formData.stock);
+
       const payload: any = {
         name: formData.name,
         description: formData.description || null,
@@ -127,23 +129,21 @@ export default function ProductsPage() {
         image_url: formData.image_url || null,
         gallery: formData.gallery,
         features: featuresArray,
-        is_digital: formData.is_digital,
+        is_digital: Boolean(formData.is_digital), // Clean boolean for DB
         file_path: formData.file_path || null,
-        stock_quantity: parseInt(formData.stock),
-        stock: parseInt(formData.stock),
+        stock_quantity: calculatedStock,
+        stock: calculatedStock,
         slug: formData.name.toLowerCase().replace(/ /g, '-').replace(/[^\w-]+/g, '')
       };
 
       let error;
       if (editingId) {
-        // FIX: Added 'as any' to bypass strict Type Checking
         const { error: updateError } = await (supabase as any)
           .from('products')
           .update(payload)
           .eq('id', editingId);
         error = updateError;
       } else {
-        // FIX: Added 'as any' to bypass strict Type Checking
         const { error: insertError } = await (supabase as any)
           .from('products')
           .insert([payload]);
@@ -237,9 +237,9 @@ export default function ProductsPage() {
                 </td>
                 <td className="px-8 py-5">
                    <div className="flex items-center gap-2">
-                      <div className={`w-1.5 h-1.5 rounded-full ${(p.stock_quantity || p.stock) > 0 ? 'bg-emerald-500' : 'bg-red-500'}`} />
+                      <div className={`w-1.5 h-1.5 rounded-full ${(p.stock_quantity || p.stock) > 0 || p.is_digital ? 'bg-emerald-500' : 'bg-red-500'}`} />
                       <span className="font-bold text-gray-600">
-                        {p.is_digital ? '∞' : `${p.stock_quantity || p.stock || 0} Units`}
+                        {p.is_digital ? '∞ Available' : `${p.stock_quantity || p.stock || 0} Units`}
                       </span>
                    </div>
                 </td>
@@ -342,12 +342,15 @@ export default function ProductsPage() {
                 <textarea rows={4} className="w-full px-6 py-4 text-sm font-medium border border-gray-100 outline-none bg-gray-50 rounded-2xl" value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} />
               </div>
 
-              <div className="col-span-1">
-                <label className="text-[10px] font-black uppercase text-gray-400 mb-2 block tracking-widest">Initial Stock Balance</label>
-                <input type="number" className="w-full px-6 py-4 text-sm font-bold border border-gray-100 bg-gray-50 rounded-2xl" value={formData.stock} onChange={e => setFormData({...formData, stock: e.target.value})} />
-              </div>
+              {/* STOCK SECTION: Hidden for digital assets */}
+              {!formData.is_digital && (
+                <div className="col-span-1">
+                  <label className="text-[10px] font-black uppercase text-gray-400 mb-2 block tracking-widest">Initial Stock Balance</label>
+                  <input type="number" className="w-full px-6 py-4 text-sm font-bold border border-gray-100 bg-gray-50 rounded-2xl" value={formData.stock} onChange={e => setFormData({...formData, stock: e.target.value})} />
+                </div>
+              )}
 
-              <div className="flex items-center col-span-1 gap-4 pt-6">
+              <div className={`flex items-center gap-4 pt-6 ${formData.is_digital ? 'col-span-2' : 'col-span-1'}`}>
                 <input id="is_digital" type="checkbox" className="w-6 h-6 rounded-lg text-[#06392F] cursor-pointer" checked={formData.is_digital} onChange={e => setFormData({...formData, is_digital: e.target.checked})} />
                 <label htmlFor="is_digital" className="text-sm font-black tracking-tight text-gray-700 uppercase cursor-pointer">Digital Asset / Plan</label>
               </div>

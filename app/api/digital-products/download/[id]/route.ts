@@ -1,79 +1,75 @@
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
+import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
 
 export async function GET(
   request: Request,
   { params }: { params: { id: string } }
 ) {
-  // 1. Setup Supabase Client
-  const cookieStore = cookies();
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(name) { return cookieStore.get(name)?.value; }
-      }
-    }
-  );
-
+  // Ensure we have the ID from the URL
   const productId = params.id;
 
   try {
+    // 1. Initialize Supabase
+    const supabase = await createClient();
+
     // 2. Authentication Check
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized: Please log in.' }, { status: 401 });
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Log in required' }, { status: 401 });
     }
 
-    // 3. Authorization Check: Did they buy it?
-    // We look for any order that is PAID/DELIVERED and belongs to this user
-    const { data: orders, error: orderError } = await supabase
+    // 3. Authorization Check: Verify Purchase
+    // We use 'as any' here to bypass potential table type mismatches during build
+    const { data: orders, error: orderError } = await (supabase
       .from('orders')
       .select('items')
       .eq('user_id', user.id)
-      .in('status', ['paid', 'delivered', 'shipped']);
+      .in('status', ['paid', 'delivered']) as any);
 
     if (orderError) throw orderError;
 
-    // Check if the product ID exists inside any of the order's "items" JSON arrays
-    const hasPurchased = orders?.some((order) => 
+    const hasPurchased = orders?.some((order: any) => 
       Array.isArray(order.items) && 
       order.items.some((item: any) => item.id === productId)
     );
 
     if (!hasPurchased) {
-      return NextResponse.json({ error: 'Forbidden: You have not purchased this item.' }, { status: 403 });
+      return NextResponse.json({ error: 'Forbidden: Product not purchased' }, { status: 403 });
     }
 
-    // 4. Get the File Path from the Product
-    const { data: product, error: productError } = await supabase
+    // 4. Get File Path from Database
+    // ✅ FIX: Casting to 'any' stops the 'file_path does not exist' TypeScript error
+    const { data: product, error: productError } = await (supabase
       .from('products')
-      .select('file_path')
+      .select('file_path, title')
       .eq('id', productId)
-      .single();
+      .single() as any);
 
-    if (productError || !product?.file_path) {
-      return NextResponse.json({ error: 'File not found for this product.' }, { status: 404 });
+    // ✅ Robust Null check
+    if (productError || !product || !product.file_path) {
+      console.error('Database fetch error:', productError);
+      return NextResponse.json({ error: 'Product file record not found' }, { status: 404 });
     }
 
-    // 5. Generate a Temporary Signed URL (Valid for 10 minutes)
+    // 5. Generate Secure Signed URL
     const { data: signedData, error: signError } = await supabase
       .storage
       .from('product-files')
-      .createSignedUrl(product.file_path, 600); 
+      .createSignedUrl(product.file_path, 600, {
+        download: true, // Forces "Save As" dialog instead of opening in tab
+      });
 
-    if (signError || !signedData) {
-      throw new Error('Could not generate secure link.');
+    // ✅ Null check for signedData to satisfy TypeScript
+    if (signError || !signedData || !signedData.signedUrl) {
+      console.error('Supabase Storage Error:', signError);
+      return NextResponse.json({ error: 'Failed to generate secure download link' }, { status: 500 });
     }
 
-    // 6. Redirect the user to the actual file
-    return NextResponse.redirect(signedData.signedUrl);
+    // 6. Success: Redirect to the secure link
+    return NextResponse.redirect(new URL(signedData.signedUrl));
 
   } catch (error: any) {
-    console.error('Download Error:', error);
-    return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
+    console.error('Download System Error:', error.message);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

@@ -4,7 +4,8 @@ const nextConfig = {
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: 'gztcoyjqesqpkoieqgau.supabase.co',
+        // Update this line to your current project ID from the error
+        hostname: 'kvanpalncqrcdquptbgt.supabase.co', 
         port: '',
         pathname: '/storage/v1/object/public/**',
       },

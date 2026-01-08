@@ -1,127 +1,255 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { Loader2, Package, ShieldCheck, ChevronRight } from 'lucide-react';
-import Link from 'next/link';
-import Image from 'next/image';
-import { formatCurrency } from '@/lib/utils/formatters';
-import { ProductPurchase } from '@/components/products/product-purchase';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { createClient } from '@/lib/supabase/client';
+import { 
+  ArrowLeft, 
+  Loader2, 
+  ShoppingCart, 
+  CheckCircle2,
+  Lock,
+  X,
+  CreditCard
+} from 'lucide-react';
+import { toast } from 'react-hot-toast';
 
-interface PageProps {
-  params: { slug: string; id: string };
-}
+export default function ProductDisplayPage({ 
+  params 
+}: { 
+  params: { slug: string; id: string } 
+}) {
+  const router = useRouter();
+  const productId = params.id;
+  const supabase = createClient();
 
-export default function ProductDetailPage({ params }: PageProps) {
-  const { slug, id } = params;
-  const [product, setProduct] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [paymentLoading, setPaymentLoading] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [product, setProduct] = useState<any>(null);
+  const [activeImage, setActiveImage] = useState<string>('');
+  
+  const [email, setEmail] = useState('');
 
   useEffect(() => {
     async function fetchProduct() {
       try {
-        // Log the ID to verify what is being sent to the API
-        console.log('Fetching product ID:', id);
+        setLoading(true);
+        const { data, error } = await supabase
+          .from('products')
+          .select('*')
+          .eq('id', productId)
+          .single();
+
+        if (error) throw error;
         
-        const res = await fetch(`/api/products/${id}`);
-        if (!res.ok) throw new Error('Product not found');
-        
-        const data = await res.json();
-        setProduct(data);
-      } catch (error) {
-        console.error('Error fetching product:', error);
+        if (data) {
+          setProduct(data);
+          setActiveImage(data.image_url ?? '');
+        }
+      } catch (err: any) {
+        console.error(err.message);
+        toast.error("Plan not found");
       } finally {
         setLoading(false);
       }
     }
-    if (id) fetchProduct();
-  }, [id]);
+    if (productId) fetchProduct();
+  }, [productId, supabase]);
+
+  const handlePaymentInit = async () => {
+    if (!email || !email.includes('@')) {
+      toast.error("Please enter a valid email address to receive your plan.");
+      return;
+    }
+
+    setPaymentLoading(true);
+    try {
+      const response = await fetch('/api/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          amount: product.price,
+          productName: product.name,
+          productId: product.id,
+          email: email,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (response.ok && result.url) {
+        window.location.href = result.url;
+      } else {
+        const errorMsg = result.details?.message || result.error || "Initialization failed";
+        throw new Error(errorMsg);
+      }
+    } catch (err: any) {
+      console.error("Payment Error:", err);
+      toast.error(err.message || "Payment gateway busy. Please try again.");
+    } finally {
+      setPaymentLoading(false);
+    }
+  };
 
   if (loading) return (
-    <div className="flex flex-col items-center justify-center h-[60vh]" aria-live="polite">
-      <Loader2 className="animate-spin text-[#C75B39]" size={48} />
-      <p className="mt-4 text-xs font-bold tracking-widest text-gray-400 uppercase tracking-[0.3em]">Analyzing Specs...</p>
+    <div className="flex flex-col items-center justify-center h-screen bg-white">
+      <Loader2 className="animate-spin text-[#06392F]" size={40} />
     </div>
   );
 
-  if (!product) return (
-    <div className="p-20 text-center">
-      <h2 className="text-2xl font-black uppercase text-[#06392F]">Material Not Found</h2>
-      <p className="mt-2 mb-8 text-sm tracking-widest text-gray-400 uppercase">The requested product ID does not exist in the manifest.</p>
-      <Link href="/products" className="bg-[#06392F] text-white px-8 py-4 font-black uppercase text-xs">Return to Inventory</Link>
-    </div>
-  );
+  if (!product) return <div className="p-20 font-bold tracking-widest text-center text-gray-400 uppercase">Plan not found.</div>;
+
+  const galleryItems = [product.image_url, ...(product.gallery || [])].filter(Boolean);
 
   return (
-    <div className="p-4 mx-auto max-w-7xl md:p-12">
-      {/* Breadcrumbs */}
-      <nav className="flex items-center gap-2 mb-12 text-[10px] font-black uppercase tracking-widest text-gray-400">
-        <Link href="/products" className="hover:text-[#C75B39]">Catalog</Link>
-        <ChevronRight size={12} />
-        <span className="text-[#06392F] truncate max-w-[200px]">{product.name}</span>
+    <main className="relative p-6 mx-auto space-y-12 max-w-7xl lg:p-12">
+      <nav aria-label="Breadcrumb">
+        <button 
+          onClick={() => router.back()}
+          className="flex items-center text-gray-400 hover:text-black font-bold text-[10px] uppercase tracking-widest transition-all"
+        >
+          <ArrowLeft size={14} className="mr-2" /> Back to Plans
+        </button>
       </nav>
 
       <div className="grid items-start grid-cols-1 gap-16 lg:grid-cols-2">
-        {/* Product Image - Updated to use featured_image_url */}
-        <div className="relative aspect-square rounded-[2rem] overflow-hidden bg-white border border-gray-100 shadow-xl group">
-          <Image
-            src={product.featured_image_url || product.image_url || '/placeholder.jpg'}
-            alt={product.name}
-            fill
-            className="object-contain p-8 transition-transform duration-700 group-hover:scale-105"
-            priority // Helps with LCP performance
-          />
-        </div>
+        <section className="space-y-4">
+          <div className="aspect-[4/5] bg-gray-50 rounded-[2.5rem] overflow-hidden border border-gray-100 shadow-sm group">
+            <img 
+              src={activeImage || '/placeholder.jpg'} 
+              alt={product.name} 
+              className="object-cover w-full h-full transition-transform duration-700 group-hover:scale-105"
+            />
+          </div>
+          
+          {galleryItems.length > 1 && (
+            <div className="grid grid-cols-4 gap-4">
+              {galleryItems.map((url, i) => (
+                <button 
+                  key={i}
+                  onClick={() => setActiveImage(url)}
+                  className={`aspect-square rounded-2xl overflow-hidden border-2 transition-all ${
+                    activeImage === url ? 'border-[#06392F] scale-95' : 'border-transparent opacity-60 hover:opacity-100'
+                  }`}
+                >
+                  <img src={url} alt="" className="object-cover w-full h-full" />
+                </button>
+              ))}
+            </div>
+          )}
+        </section>
 
-        {/* Product Details */}
-        <div className="flex flex-col">
-          <div className="mb-6 space-y-4">
-            <span className="inline-block bg-[#06392F] text-white px-4 py-1 text-[9px] font-black uppercase tracking-[0.2em]">
-              {product.category || 'General Supply'}
+        <section className="space-y-8 lg:sticky lg:top-12">
+          <div className="space-y-2">
+            <span className="text-[10px] font-black text-[#06392F] uppercase tracking-[0.3em]">
+              {product.category || 'Digital Plan'}
             </span>
-            <h1 className="text-5xl font-black text-[#06392F] leading-[0.9] uppercase tracking-tighter">
+            <h1 className="text-4xl italic font-black leading-none tracking-tighter text-gray-900 uppercase lg:text-5xl">
               {product.name}
             </h1>
+            <p className="text-2xl font-bold text-gray-400">KES {Number(product.price).toLocaleString()}</p>
           </div>
 
-          <div className="flex items-baseline gap-4 mb-8">
-            <p className="text-4xl font-black text-[#C75B39]">
-              {formatCurrency(product.price)}
-            </p>
-            {product.compare_at_price && (
-              <p className="text-xl font-bold text-gray-300 line-through">
-                {formatCurrency(product.compare_at_price)}
-              </p>
-            )}
+          <p className="max-w-md text-lg leading-relaxed text-gray-600">{product.description}</p>
+
+          <div className="space-y-3">
+            {Array.isArray(product.features) && product.features.map((feat: string, i: number) => (
+              <div key={i} className="flex items-center gap-3 text-sm font-bold text-gray-700">
+                <CheckCircle2 size={18} className="text-[#06392F]" />
+                {feat}
+              </div>
+            ))}
           </div>
 
-          <div className="py-8 mb-8 border-t border-gray-100">
-            <h4 className="mb-4 text-[10px] font-black tracking-widest text-gray-400 uppercase">Specifications & Details</h4>
-            <p className="text-lg font-medium leading-relaxed text-gray-600">
-              {product.description || product.short_description || "No detailed description available for this unit."}
-            </p>
+          <div className="pt-8 space-y-4 border-t border-gray-100">
+            <div className="flex items-center gap-3 p-4 border border-gray-100 bg-gray-50 rounded-2xl">
+              <Lock size={18} className="text-gray-400" />
+              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                Instant STK Push / Card Payment
+              </span>
+            </div>
+
+            <button 
+              onClick={() => setIsModalOpen(true)}
+              className="w-full py-6 bg-[#06392F] text-white rounded-[2rem] font-black uppercase text-xs tracking-[0.4em] shadow-2xl shadow-[#06392F]/20 hover:bg-[#084d40] transition-all flex items-center justify-center gap-3"
+            >
+              <ShoppingCart size={18} />
+              Checkout Now
+            </button>
           </div>
+        </section>
+      </div>
 
-          {/* This component handles the actual Add to Cart logic */}
-          <ProductPurchase product={product} />
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="flex flex-col w-full max-w-md p-8 bg-white shadow-2xl rounded-[3rem] animate-in slide-in-from-bottom-4 duration-300">
+            <div className="flex items-center justify-between mb-8">
+              <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-400">Secure Checkout</h2>
+              <button onClick={() => setIsModalOpen(false)} className="p-2 rounded-full hover:bg-gray-100"><X size={20} /></button>
+            </div>
 
-          <div className="grid grid-cols-1 gap-4 pt-10 mt-10 border-t border-gray-100 sm:grid-cols-2">
-            <div className="flex items-center gap-4 p-4 border rounded-xl border-gray-50 bg-gray-50/50">
-              <div className="p-2 rounded-lg text-emerald-600 bg-emerald-50"><ShieldCheck size={20} /></div>
-              <div className="flex flex-col">
-                <span className="text-[10px] font-black uppercase tracking-widest">Quality Assured</span>
-                <span className="text-[9px] font-bold text-gray-400 uppercase">Vetted Construction Grade</span>
+            <div className="flex items-center gap-4 p-4 mb-6 border border-gray-100 bg-gray-50 rounded-2xl">
+              <div className="flex-shrink-0 w-12 h-12 overflow-hidden bg-white rounded-lg">
+                <img src={product.image_url} alt="" className="object-cover w-full h-full" />
+              </div>
+              <div>
+                <h3 className="text-[10px] font-black uppercase">{product.name}</h3>
+                <p className="text-[#06392F] font-bold text-xs">KES {Number(product.price).toLocaleString()}</p>
               </div>
             </div>
-            <div className="flex items-center gap-4 p-4 border rounded-xl border-gray-50 bg-gray-50/50">
-              <div className="p-2 text-[#C75B39] rounded-lg bg-orange-50"><Package size={20} /></div>
-              <div className="flex flex-col">
-                <span className="text-[10px] font-black uppercase tracking-widest">Logistics</span>
-                <span className="text-[9px] font-bold text-gray-400 uppercase">Direct Site Delivery</span>
-              </div>
+
+            <div className="mb-6 space-y-3">
+               <label className="text-[9px] font-black uppercase text-gray-500 tracking-widest block ml-1">
+                 Email for Delivery
+               </label>
+               <input 
+                 type="email"
+                 placeholder="name@example.com"
+                 value={email}
+                 onChange={(e) => setEmail(e.target.value)}
+                 className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-bold focus:ring-2 focus:ring-[#06392F] outline-none transition-all"
+               />
+            </div>
+
+            {/* INTASEND TRUST BADGE SECTION */}
+            <div className="flex flex-col items-center mb-8">
+              <a href="https://intasend.com/security" target="_blank" rel="noopener noreferrer noopener">
+                <img 
+                  src="https://intasend-prod-static.s3.amazonaws.com/img/trust-badges/intasend-trust-badge-with-mpesa-hr-light.png" 
+                  style={{ width: '300px' }} 
+                  alt="IntaSend Secure Payments (PCI-DSS Compliant)"
+                  className="transition-opacity opacity-90 hover:opacity-100"
+                />
+              </a>
+              <a 
+                style={{ display: 'block', color: '#454545', textDecoration: 'none', fontSize: '0.7em', marginTop: '0.6em' }} 
+                href="https://intasend.com/security" 
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-bold tracking-widest uppercase"
+              >
+                Secured by IntaSend Payments
+              </a>
+            </div>
+
+            <div className="space-y-4">
+               <button 
+                disabled={paymentLoading}
+                onClick={handlePaymentInit}
+                className="w-full py-6 bg-[#06392F] text-white rounded-[2rem] font-black uppercase text-[10px] tracking-[0.4em] hover:bg-[#084d40] transition-all flex items-center justify-center gap-3 disabled:opacity-50"
+              >
+                {paymentLoading ? <Loader2 className="animate-spin" size={18} /> : <CreditCard size={18} />}
+                {paymentLoading ? 'Connecting...' : 'Pay with M-Pesa / Card'}
+              </button>
+              
+              <p className="text-[8px] text-center text-gray-400 font-bold uppercase tracking-widest leading-relaxed">
+                Upon successful payment, the download link will be sent to your email.
+              </p>
             </div>
           </div>
         </div>
-      </div>
-    </div>
+      )}
+    </main>
   );
 }

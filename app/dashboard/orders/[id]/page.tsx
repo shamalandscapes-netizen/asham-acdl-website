@@ -1,12 +1,12 @@
 'use client';
 
-import { useEffect, useState, use } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { 
   ArrowLeft, Package, Truck, CheckCircle2, 
   Clock, MapPin, CreditCard, Construction, 
-  ReceiptText, AlertCircle, FileDown, Loader2 as Spinner
+  ReceiptText, AlertCircle, FileDown
 } from 'lucide-react';
 
 // --- Interfaces ---
@@ -29,9 +29,11 @@ interface OrderDetail {
   items: OrderItem[];
 }
 
-export default function OrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params);
+// In Next.js 14.2.x, params is a plain object, NOT a Promise.
+export default function OrderDetailPage({ params }: { params: { id: string } }) {
+  const id = params.id;
   const supabase = createClient();
+  
   const [order, setOrder] = useState<OrderDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
@@ -39,7 +41,8 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
   useEffect(() => {
     async function fetchOrderDetails() {
       try {
-        const { data, error } = await supabase
+        // Using (supabase as any) to ensure build stability
+        const { data, error } = await (supabase as any)
           .from('orders')
           .select(`*, order_items (*)`)
           .eq('id', id)
@@ -49,7 +52,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
 
         if (data) {
           const rawData = data as any;
-          const mappedItems: OrderItem[] = rawData.order_items.map((item: any) => ({
+          const mappedItems: OrderItem[] = (rawData.order_items || []).map((item: any) => ({
             id: item.id,
             product_name: item.product_name,
             quantity: item.quantity,
@@ -74,26 +77,25 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
         setLoading(false);
       }
     }
-    fetchOrderDetails();
+
+    if (id) fetchOrderDetails();
   }, [id, supabase]);
 
   const handleDownload = async (itemId: string) => {
     setDownloadingId(itemId);
     try {
-      // Directs the browser to our secure API route
       window.location.href = `/api/download/${itemId}`;
     } catch (error) {
       console.error('Download failed', error);
     } finally {
-      // Reset loading state after a brief delay
       setTimeout(() => setDownloadingId(null), 2000);
     }
   };
 
   if (loading) return (
     <div className="flex flex-col items-center justify-center h-[60vh]">
-      <Loader2 className="animate-spin text-[#06392F]" size={40} />
-      <p className="mt-4 text-sm font-black tracking-widest text-gray-400 uppercase">Loading Details...</p>
+      <Construction className="animate-spin text-[#06392F]" size={40} />
+      <p className="mt-4 text-[10px] font-black tracking-[0.3em] text-gray-400 uppercase">Retrieving Order Manifest</p>
     </div>
   );
 
@@ -110,30 +112,30 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
   const isPaid = order.payment_status.toLowerCase() === 'paid' || currentStepIndex > 1;
 
   return (
-    <div className="max-w-6xl pb-20 mx-auto space-y-8 duration-700 animate-in fade-in slide-in-from-bottom-4">
+    <div className="max-w-6xl p-4 pb-20 mx-auto space-y-8 duration-700 animate-in fade-in slide-in-from-bottom-4">
       
       {/* --- HEADER --- */}
       <div className="flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
         <Link 
           href="/dashboard/orders" 
-          className="flex items-center gap-2 text-xs font-black text-gray-400 hover:text-[#C75B39] transition-all group"
+          className="flex items-center gap-3 text-[10px] font-black text-gray-400 hover:text-[#C75B39] transition-all group tracking-widest"
         >
-          <div className="p-2 rounded-lg bg-gray-100 group-hover:bg-[#C75B39] group-hover:text-white transition-all">
+          <div className="p-2.5 rounded-xl bg-gray-100 group-hover:bg-[#C75B39] group-hover:text-white transition-all shadow-sm">
             <ArrowLeft size={14} />
           </div>
           BACK TO HISTORY
         </Link>
-        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest bg-gray-50 px-3 py-1 rounded-full border border-gray-100">
-            ID: {order.id.split('-')[0].toUpperCase()}
+        <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] bg-white px-5 py-2 rounded-full border border-gray-100 shadow-sm">
+            TRANSACTION ID: {order.id.split('-')[0].toUpperCase()}
         </span>
       </div>
 
       {/* --- TIMELINE --- */}
-      <div className="bg-white border border-gray-100 rounded-[2.5rem] p-8 md:p-12 shadow-xl shadow-gray-200/30">
-        <div className="relative flex flex-col items-center justify-between gap-8 md:flex-row">
-          <div className="absolute top-[40%] left-0 w-full h-1 bg-gray-100 hidden md:block" />
+      <div className="bg-white border border-gray-100 rounded-[3rem] p-8 md:p-14 shadow-2xl shadow-gray-200/40">
+        <div className="relative flex flex-col items-center justify-between gap-10 md:flex-row">
+          <div className="absolute top-[35%] left-0 w-full h-[2px] bg-gray-100 hidden md:block" />
           <div 
-            className="absolute top-[40%] left-0 h-1 bg-[#C75B39] hidden md:block transition-all duration-1000" 
+            className="absolute top-[35%] left-0 h-[2px] bg-[#C75B39] hidden md:block transition-all duration-1000 ease-out" 
             style={{ width: `${Math.max(0, (currentStepIndex / (steps.length - 1)) * 100)}%` }}
           />
 
@@ -141,15 +143,15 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
             const isCompleted = idx <= currentStepIndex;
             const isCurrent = idx === currentStepIndex;
             return (
-              <div key={step.label} className="relative z-10 flex flex-col items-center gap-4">
+              <div key={step.label} className="relative z-10 flex flex-col items-center gap-5">
                 <div className={`
-                  w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg transition-all duration-500
+                  w-16 h-16 rounded-[1.25rem] flex items-center justify-center shadow-xl transition-all duration-700
                   ${isCompleted ? 'bg-[#06392F] text-white' : 'bg-white text-gray-300 border border-gray-100'}
-                  ${isCurrent ? 'ring-8 ring-orange-50 scale-110 shadow-orange-900/20 bg-[#C75B39]' : ''}
+                  ${isCurrent ? 'ring-[12px] ring-orange-50 scale-110 bg-[#C75B39] shadow-[#C75B39]/20' : ''}
                 `}>
                   {step.icon}
                 </div>
-                <p className={`text-[10px] font-black uppercase tracking-widest ${isCompleted ? 'text-[#06392F]' : 'text-gray-300'}`}>
+                <p className={`text-[9px] font-black uppercase tracking-[0.2em] ${isCompleted ? 'text-[#06392F]' : 'text-gray-300'}`}>
                   {step.label}
                 </p>
               </div>
@@ -158,48 +160,48 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-10 lg:grid-cols-3">
         {/* --- ITEMS --- */}
-        <div className="space-y-6 lg:col-span-2">
-          <div className="bg-white border border-gray-100 rounded-[2.5rem] shadow-sm overflow-hidden">
-            <div className="flex items-center justify-between p-8 border-b border-gray-50 bg-gray-50/30">
-              <h3 className="text-xl font-black text-[#06392F] flex items-center gap-3">
-                <ReceiptText className="text-[#C75B39]" size={22} /> Shipment Summary
+        <div className="space-y-8 lg:col-span-2">
+          <div className="bg-white border border-gray-100 rounded-[3rem] shadow-xl shadow-gray-200/20 overflow-hidden">
+            <div className="flex items-center justify-between p-10 border-b border-gray-50 bg-gray-50/30">
+              <h3 className="text-xl italic font-black text-[#06392F] flex items-center gap-4 uppercase tracking-tighter">
+                <ReceiptText className="text-[#C75B39]" size={24} /> Shipment Summary
               </h3>
             </div>
             
             <div className="divide-y divide-gray-50">
               {order.items.map((item) => (
-                <div key={item.id} className="flex flex-col items-start justify-between gap-6 p-8 transition-all sm:flex-row sm:items-center group hover:bg-gray-50/50">
-                  <div className="flex items-center gap-5">
-                    <div className="w-14 h-14 bg-gray-100 rounded-2xl flex items-center justify-center text-[#06392F] group-hover:scale-110 transition-transform">
-                      <Package size={24} />
+                <div key={item.id} className="flex flex-col items-start justify-between gap-8 p-10 transition-all sm:flex-row sm:items-center group hover:bg-gray-50/40">
+                  <div className="flex items-center gap-6">
+                    <div className="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center text-[#06392F] group-hover:scale-110 transition-all border border-gray-100">
+                      <Package size={28} />
                     </div>
                     <div>
-                      <h4 className="font-black text-[#06392F] text-lg">{item.product_name}</h4>
-                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Qty: {item.quantity}</p>
+                      <h4 className="font-black text-[#06392F] text-lg uppercase tracking-tight">{item.product_name}</h4>
+                      <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-1">QUANTITY: {item.quantity}</p>
                     </div>
                   </div>
                   
-                  <div className="flex items-center justify-between w-full gap-6 sm:w-auto">
-                    <p className="font-black text-[#06392F]">KES {(item.unit_price * item.quantity).toLocaleString()}</p>
+                  <div className="flex items-center justify-between w-full gap-8 sm:w-auto">
+                    <p className="text-lg font-black text-[#06392F]">KES {item.unit_price.toLocaleString()}</p>
                     
                     {item.digital_file_url && (
                       <button 
                         disabled={!isPaid || downloadingId === item.id}
                         onClick={() => handleDownload(item.id)}
-                        className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-black text-[10px] tracking-widest transition-all
+                        className={`flex items-center gap-3 px-8 py-4 rounded-2xl font-black text-[10px] tracking-[0.2em] transition-all
                           ${isPaid 
-                            ? 'bg-[#C75B39] text-white hover:bg-[#06392F] shadow-lg shadow-orange-900/20' 
-                            : 'bg-gray-100 text-gray-400 cursor-not-allowed opacity-50'
+                            ? 'bg-[#C75B39] text-white hover:bg-[#06392F] shadow-xl shadow-orange-900/20 hover:-translate-y-1' 
+                            : 'bg-gray-100 text-gray-400 cursor-not-allowed'
                           }`}
                       >
                         {downloadingId === item.id ? (
-                          <Spinner className="animate-spin" size={14} />
+                          <Construction className="animate-spin" size={14} />
                         ) : (
                           <FileDown size={14} />
                         )}
-                        {isPaid ? (downloadingId === item.id ? 'PREPARING...' : 'DOWNLOAD PDF') : 'LOCKED'}
+                        {isPaid ? (downloadingId === item.id ? 'VERIFYING...' : 'GET ASSET') : 'LOCKED'}
                       </button>
                     )}
                   </div>
@@ -207,51 +209,51 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
               ))}
             </div>
 
-            <div className="p-8 bg-[#F8FAFC] border-t border-gray-100">
-               <div className="flex justify-between items-center font-black text-[#06392F]">
-                 <span className="uppercase tracking-[0.2em] text-xs">Grand Total</span>
-                 <span className="text-2xl text-[#C75B39]">KES {order.total_amount.toLocaleString()}</span>
-               </div>
+            <div className="p-10 border-t border-gray-100 bg-gray-50">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-400">Total Valuation</span>
+                  <span className="text-3xl font-black text-[#C75B39]">KES {order.total_amount.toLocaleString()}</span>
+                </div>
             </div>
           </div>
         </div>
 
         {/* --- INFO PANELS --- */}
-        <div className="space-y-6">
-          <div className="bg-white border border-gray-100 rounded-[2.5rem] p-8 shadow-sm">
-            <div className="flex items-center gap-3 mb-6">
+        <div className="space-y-8">
+          <div className="bg-white border border-gray-100 rounded-[3rem] p-10 shadow-xl shadow-gray-200/20">
+            <div className="flex items-center gap-3 mb-8">
                 <MapPin className="text-[#C75B39]" size={20} />
-                <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Delivery Site</h4>
+                <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Delivery Coordinates</h4>
             </div>
-            <p className="text-sm font-black text-[#06392F] leading-relaxed italic">
-              "{order.shipping_address || 'Standard Office Collection'}"
+            <p className="text-sm font-black text-[#06392F] leading-relaxed italic border-l-4 border-[#C75B39] pl-6 py-2">
+              "{order.shipping_address || 'Collection at Headquarters'}"
             </p>
           </div>
 
-          <div className="bg-[#06392F] text-white rounded-[2.5rem] p-8 shadow-xl relative overflow-hidden group">
-            <div className="absolute w-24 h-24 transition-all rounded-full -right-4 -top-4 bg-white/5 blur-2xl group-hover:bg-white/10" />
-            <h4 className="text-[10px] font-black text-white/40 uppercase tracking-widest mb-6">Payment Details</h4>
-            <div className="flex gap-4 mb-8">
-              <div className="flex items-center justify-center w-12 h-12 rounded-2xl bg-white/10">
-                <CreditCard size={20} />
+          <div className="bg-[#06392F] text-white rounded-[3rem] p-10 shadow-2xl relative overflow-hidden group">
+            <div className="absolute w-32 h-32 transition-all rounded-full -right-8 -top-8 bg-white/5 blur-3xl group-hover:bg-white/10" />
+            <h4 className="text-[10px] font-black text-white/30 uppercase tracking-widest mb-8">Financial Verification</h4>
+            <div className="flex gap-5 mb-10">
+              <div className="flex items-center justify-center shadow-inner w-14 h-14 rounded-2xl bg-white/10">
+                <CreditCard size={22} />
               </div>
               <div>
-                <p className="text-sm font-black tracking-tight">Lipa Na M-Pesa</p>
-                <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest mt-1">
-                  REF: {order.mpesa_receipt || 'PROCESSING'}
+                <p className="text-sm font-black tracking-widest uppercase">M-PESA PORTAL</p>
+                <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest mt-2 bg-white/5 px-3 py-1 rounded-md inline-block">
+                  REC: {order.mpesa_receipt || 'WAITING'}
                 </p>
               </div>
             </div>
 
             {order.payment_status === 'pending' ? (
-              <div className="flex gap-3 p-4 border bg-amber-500/10 border-amber-500/20 rounded-2xl animate-pulse">
-                <AlertCircle className="text-amber-500 shrink-0" size={18} />
-                <p className="text-[10px] font-bold text-amber-200">Verifying M-Pesa payment...</p>
+              <div className="flex gap-4 p-5 border bg-amber-500/10 border-amber-500/20 rounded-2xl animate-pulse">
+                <AlertCircle className="text-amber-500 shrink-0" size={20} />
+                <p className="text-[10px] font-black text-amber-200 uppercase tracking-widest leading-normal">Awaiting Payment Confirmation from Gateway</p>
               </div>
             ) : (
-              <div className="flex gap-3 p-4 border bg-emerald-500/10 border-emerald-500/20 rounded-2xl">
-                <CheckCircle2 className="text-emerald-500 shrink-0" size={18} />
-                <p className="text-[10px] font-bold text-emerald-100 uppercase tracking-widest">Confirmed</p>
+              <div className="flex gap-4 p-5 border bg-emerald-500/10 border-emerald-500/20 rounded-2xl">
+                <CheckCircle2 className="text-emerald-500 shrink-0" size={20} />
+                <p className="text-[10px] font-black text-emerald-100 uppercase tracking-widest">Asset Unlocked & Payment Cleared</p>
               </div>
             )}
           </div>
@@ -259,8 +261,4 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
       </div>
     </div>
   );
-}
-
-function Loader2({ className, size }: { className?: string, size?: number }) {
-    return <Construction className={`${className}`} size={size} />;
 }
