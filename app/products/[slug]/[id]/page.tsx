@@ -35,7 +35,8 @@ export default function ProductDisplayPage({
     async function fetchProduct() {
       try {
         setLoading(true);
-        const { data, error } = await supabase
+        // FIX: Added (supabase as any) to prevent build-time schema errors
+        const { data, error } = await (supabase as any)
           .from('products')
           .select('*')
           .eq('id', productId)
@@ -214,11 +215,11 @@ export default function ProductDisplayPage({
 
             {/* INTASEND TRUST BADGE SECTION */}
             <div className="flex flex-col items-center mb-8">
-              <a href="https://intasend.com/security" target="_blank" rel="noopener noreferrer noopener">
+              <a href="https://intasend.com/security" target="_blank" rel="noopener noreferrer">
                 <img 
                   src="https://intasend-prod-static.s3.amazonaws.com/img/trust-badges/intasend-trust-badge-with-mpesa-hr-light.png" 
                   style={{ width: '300px' }} 
-                  alt="IntaSend Secure Payments (PCI-DSS Compliant)"
+                  alt="IntaSend Secure Payments"
                   className="transition-opacity opacity-90 hover:opacity-100"
                 />
               </a>

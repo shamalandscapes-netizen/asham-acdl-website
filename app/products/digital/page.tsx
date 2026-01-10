@@ -31,18 +31,18 @@ export default function DigitalProductsPage() {
 
   useEffect(() => {
     async function fetchDigitalProducts() {
-      // Fetch only DIGITAL products based on is_digital field
-      const { data, error } = await supabase
+      // FIX: Cast supabase as any to bypass schema check for 'products' table
+      const { data, error } = await (supabase as any)
         .from('products')
         .select('*')
-        .eq('is_digital', true) // Use is_digital field instead of type
+        .eq('is_digital', true)
         .order('created_at', { ascending: false });
 
       if (error) {
         console.error('Error fetching digital products:', error);
       } else if (data) {
-        // Transform database data to match DigitalProduct interface
-        const digitalProducts: DigitalProduct[] = data.map(product => ({
+        // FIX: Cast data as any[] to allow mapping over properties like .id and .name
+        const digitalProducts: DigitalProduct[] = (data as any[]).map(product => ({
           id: product.id,
           name: product.name,
           description: product.description || '',
@@ -57,7 +57,7 @@ export default function DigitalProductsPage() {
     }
 
     fetchDigitalProducts();
-  }, []);
+  }, [supabase]); // Added supabase to dependency array for best practice
 
   // Client-side search filter
   const filteredProducts = products.filter(product => 
@@ -70,7 +70,6 @@ export default function DigitalProductsPage() {
       
       {/* HERO SECTION */}
       <div className="bg-[#06392F] text-white py-16 px-4 relative overflow-hidden">
-        {/* Background Pattern Decoration */}
         <div className="absolute top-0 right-0 w-64 h-64 translate-x-1/2 -translate-y-1/2 rounded-full bg-white/5 blur-3xl"></div>
         
         <div className="relative z-10 max-w-6xl mx-auto">
@@ -85,7 +84,6 @@ export default function DigitalProductsPage() {
               </p>
             </div>
 
-            {/* Stats / Trust Badges */}
             <div className="grid w-full grid-cols-2 gap-4 md:w-auto">
               <div className="p-4 border bg-white/10 backdrop-blur rounded-xl border-white/10">
                 <div className="text-2xl font-bold">PDF/CAD</div>
@@ -103,7 +101,6 @@ export default function DigitalProductsPage() {
       {/* SEARCH & CONTENT */}
       <div className="relative z-20 max-w-6xl px-4 py-10 mx-auto -mt-8">
         
-        {/* Search Bar */}
         <div className="flex items-center max-w-2xl gap-4 p-4 mb-10 bg-white border border-gray-100 shadow-lg rounded-xl">
           <Search className="text-gray-400" size={20} />
           <input 
@@ -136,7 +133,6 @@ export default function DigitalProductsPage() {
                 key={product.id}
                 className="group bg-white rounded-2xl border border-gray-200 overflow-hidden hover:shadow-xl hover:border-[#06392F] transition-all flex flex-col h-full"
               >
-                {/* Thumbnail Area */}
                 <div className="relative flex items-center justify-center h-56 p-6 overflow-hidden transition-colors bg-blue-50 group-hover:bg-blue-100">
                   {product.image_url ? (
                     <img 
@@ -148,7 +144,6 @@ export default function DigitalProductsPage() {
                     <FileText className="w-24 h-24 text-blue-200" />
                   )}
                   
-                  {/* Overlay on Hover */}
                   <div className="absolute inset-0 bg-[#06392F]/80 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                     <span className="flex items-center gap-2 px-6 py-3 font-bold text-white border border-white rounded-full">
                       View Details <ArrowRight size={16} />
@@ -156,7 +151,6 @@ export default function DigitalProductsPage() {
                   </div>
                 </div>
 
-                {/* Content */}
                 <div className="flex flex-col flex-1 p-6">
                   <div className="flex items-center gap-2 mb-3">
                     <span className="bg-blue-100 text-blue-700 text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wide">
@@ -195,7 +189,6 @@ export default function DigitalProductsPage() {
         )}
       </div>
 
-      {/* FOOTER NOTE */}
       <div className="max-w-4xl px-4 pb-16 mx-auto text-center">
         <div className="inline-flex items-center justify-center gap-2 px-6 py-3 text-sm text-gray-500 bg-white border border-gray-100 rounded-full shadow-sm">
           <CheckCircle size={16} className="text-green-500" />

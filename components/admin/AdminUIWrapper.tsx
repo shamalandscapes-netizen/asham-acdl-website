@@ -15,7 +15,8 @@ import {
   X,
   LogOut,
   ChevronRight,
-  ShieldCheck
+  ShieldCheck,
+  PenTool
 } from 'lucide-react';
 
 interface Props {
@@ -29,65 +30,75 @@ export default function AdminUIWrapper({ children, role, userName }: Props) {
   const pathname = usePathname();
 
   const navigation = [
-    { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
-    { name: 'Inventory & Catalog', href: '/admin/products', icon: Package },
+    { name: 'Overview', href: '/admin', icon: LayoutDashboard },
+    { name: 'Inventory & Plans', href: '/admin/products', icon: Package },
+    { name: 'The Journal', href: '/admin/posts', icon: PenTool }, // Added Blog Management
     { name: 'Project Estimator', href: '/admin/calculator', icon: Calculator },
     { name: 'Saved Quotes', href: '/admin/quotes', icon: FileText },
     { name: 'Order Ledger', href: '/admin/orders', icon: ShoppingCart },
     { name: 'User Registry', href: '/admin/users', icon: Users },
   ];
 
-  const isActive = (href: string) => pathname === href;
+  const isActive = (href: string) => {
+    if (href === '/admin') return pathname === '/admin';
+    return pathname.startsWith(href);
+  };
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] flex">
-      {/* --- SIDEBAR --- */}
+    <div className="min-h-screen bg-[#F8F9FA] flex font-sans">
+      {/* --- SIDEBAR: SAFARICOM DARK MODE STYLE --- */}
       <aside className={`
-        fixed inset-y-0 left-0 z-50 w-72 bg-[#06392F] text-white transition-transform duration-300 ease-in-out lg:relative lg:translate-x-0
+        fixed inset-y-0 left-0 z-50 w-72 bg-[#06392F] text-white transition-transform duration-500 ease-in-out lg:relative lg:translate-x-0
         ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
       `}>
-        <div className="flex flex-col h-full p-6">
-          {/* Logo Section */}
-          <div className="px-2 mb-10">
+        <div className="flex flex-col h-full">
+          {/* Brand Header */}
+          <div className="p-8 pb-12">
             <h1 className="text-2xl italic font-black leading-none tracking-tighter uppercase">
               Asham <span className="text-[#C75B39]">ACDL</span>
             </h1>
-            <p className="text-[9px] font-bold uppercase tracking-[0.3em] text-white/40 mt-1">Admin Headquarters</p>
+            <div className="flex items-center gap-2 mt-2">
+               <span className="h-[1px] w-4 bg-[#C75B39]"></span>
+               <p className="text-[8px] font-black uppercase tracking-[0.4em] text-white/40">HQ Command</p>
+            </div>
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 space-y-1">
+          <nav className="flex-1 px-4 space-y-1.5 overflow-y-auto">
             {navigation.map((item) => (
               <Link
                 key={item.name}
                 href={item.href}
+                onClick={() => setIsMobileMenuOpen(false)}
                 className={`
-                  flex items-center justify-between px-4 py-3.5 rounded-2xl transition-all group
+                  flex items-center justify-between px-5 py-4 rounded-2xl transition-all duration-300 group
                   ${isActive(item.href) 
-                    ? 'bg-white text-[#06392F] shadow-lg' 
-                    : 'text-white/60 hover:bg-white/5 hover:text-white'}
+                    ? 'bg-[#C75B39] text-white shadow-xl shadow-[#C75B39]/20' 
+                    : 'text-white/50 hover:bg-white/5 hover:text-white'}
                 `}
               >
-                <div className="flex items-center gap-3">
-                  <item.icon size={20} className={isActive(item.href) ? 'text-[#06392F]' : ''} />
-                  <span className="text-[11px] font-black uppercase tracking-widest">{item.name}</span>
+                <div className="flex items-center gap-4">
+                  <item.icon size={18} strokeWidth={isActive(item.href) ? 3 : 2} />
+                  <span className="text-[10px] font-black uppercase tracking-[0.2em]">{item.name}</span>
                 </div>
-                {isActive(item.href) && <ChevronRight size={14} />}
+                {isActive(item.href) && <div className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />}
               </Link>
             ))}
           </nav>
 
-          {/* User Profile Summary (Sidebar Footer) */}
-          <div className="pt-6 mt-auto border-t border-white/10">
-            <div className="flex items-center gap-3 px-2">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-[#C75B39] to-[#E87E5D] flex items-center justify-center font-black">
-                {userName[0]}
-              </div>
-              <div>
-                <p className="text-xs font-black tracking-tight uppercase">{userName}</p>
-                <div className="flex items-center gap-1">
-                  <ShieldCheck size={10} className="text-emerald-400" />
-                  <p className="text-[9px] font-bold text-white/40 uppercase tracking-widest">{role}</p>
+          {/* User Profile Footer */}
+          <div className="p-6 mt-auto">
+            <div className="p-4 bg-white/5 rounded-[2rem] border border-white/10">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-[#C75B39] flex items-center justify-center font-black text-white shadow-lg">
+                  {userName[0]}
+                </div>
+                <div className="overflow-hidden">
+                  <p className="text-[10px] font-black tracking-tight uppercase truncate">{userName}</p>
+                  <div className="flex items-center gap-1">
+                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    <p className="text-[8px] font-bold text-white/30 uppercase tracking-widest">{role}</p>
+                  </div>
                 </div>
               </div>
             </div>
@@ -95,37 +106,40 @@ export default function AdminUIWrapper({ children, role, userName }: Props) {
         </div>
       </aside>
 
-      {/* --- MAIN CONTENT AREA --- */}
-      <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
+      {/* --- MAIN CONTENT --- */}
+      <div className="flex flex-col flex-1 min-w-0">
         {/* Header */}
-        <header className="sticky top-0 z-40 flex items-center justify-between h-20 px-8 bg-white border-b border-gray-100">
-          <button 
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="p-2 text-gray-500 rounded-lg lg:hidden hover:bg-gray-50"
-          >
-            {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
-          </button>
+        <header className="sticky top-0 z-40 flex items-center justify-between h-24 px-8 border-b border-gray-100 bg-white/80 backdrop-blur-md">
+          <div className="flex items-center gap-4">
+            <button 
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="p-3 text-[#06392F] bg-gray-50 rounded-2xl lg:hidden hover:bg-gray-100"
+            >
+              {isMobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+            </button>
 
-          <div className="hidden lg:block">
-            <p className="text-[10px] font-black uppercase text-gray-400 tracking-[0.2em]">Operational Pulse</p>
-            <h2 className="text-lg italic font-black tracking-tighter text-gray-900 uppercase">
-              {navigation.find(n => n.href === pathname)?.name || 'Command Center'}
-            </h2>
+            <div className="hidden lg:block">
+              <h2 className="text-xl italic font-black tracking-tighter text-[#06392F] uppercase">
+                {navigation.find(n => isActive(n.href))?.name || 'Operations'}
+              </h2>
+              <p className="text-[9px] font-black uppercase text-gray-400 tracking-[0.3em]">System Active • 0.04ms latency</p>
+            </div>
           </div>
 
-          <div className="flex items-center gap-4">
-            <button className="text-[10px] font-black uppercase tracking-widest px-4 py-2 border rounded-xl hover:bg-gray-50 transition-colors">
-              Settings
+          <div className="flex items-center gap-3">
+            <button className="hidden sm:flex items-center gap-2 text-[9px] font-black uppercase tracking-widest px-5 py-3 border border-gray-100 rounded-2xl hover:bg-gray-50 transition-all">
+              <Settings size={14} /> System
             </button>
-            <button className="bg-red-50 text-red-600 p-2.5 rounded-xl hover:bg-red-100 transition-colors">
-              <LogOut size={18} />
+            <button className="flex items-center gap-2 px-5 py-3 text-red-600 transition-all duration-500 bg-red-50 rounded-2xl hover:bg-red-500 hover:text-white group">
+              <span className="hidden sm:block text-[9px] font-black uppercase tracking-widest">Terminate Session</span>
+              <LogOut size={16} />
             </button>
           </div>
         </header>
 
         {/* Content Body */}
-        <main className="flex-1 overflow-y-auto bg-[#F8FAFC]">
-          <div className="p-8">
+        <main className="flex-1 overflow-y-auto">
+          <div className="max-w-[1600px] mx-auto p-6 lg:p-12 animate-in fade-in slide-in-from-bottom-4 duration-1000">
             {children}
           </div>
         </main>

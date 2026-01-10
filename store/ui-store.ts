@@ -20,6 +20,7 @@ interface UIState {
   isSearchOpen: boolean;
   openSearch: () => void;
   closeSearch: () => void;
+  toggleSearch: () => void; // ✅ Added to match Navbar usage
 
   // --- Product Comparison State ---
   compareItems: Product[];
@@ -48,14 +49,15 @@ export const useUIStore = create<UIState>((set) => ({
   toggleCart: () => set((state) => {
     const nextState = !state.isCartOpen;
     toggleBodyScroll(nextState);
-    return { isCartOpen: nextState };
+    // If opening, ensure search is closed
+    return { isCartOpen: nextState, isSearchOpen: false, isQuickViewOpen: false, isCompareModalOpen: false };
   }),
 
   // Quick View
   isQuickViewOpen: false,
   selectedProduct: null,
   openQuickView: (product) => {
-    set({ isQuickViewOpen: true, selectedProduct: product, isCartOpen: false, isCompareModalOpen: false });
+    set({ isQuickViewOpen: true, selectedProduct: product, isCartOpen: false, isCompareModalOpen: false, isSearchOpen: false });
     toggleBodyScroll(true);
   },
   closeQuickView: () => {
@@ -66,19 +68,24 @@ export const useUIStore = create<UIState>((set) => ({
   // Search
   isSearchOpen: false,
   openSearch: () => {
-    set({ isSearchOpen: true, isCartOpen: false, isCompareModalOpen: false });
+    set({ isSearchOpen: true, isCartOpen: false, isCompareModalOpen: false, isQuickViewOpen: false });
     toggleBodyScroll(true);
   },
   closeSearch: () => {
     set({ isSearchOpen: false });
     toggleBodyScroll(false);
   },
+  // ✅ Added toggleSearch logic
+  toggleSearch: () => set((state) => {
+    const nextState = !state.isSearchOpen;
+    toggleBodyScroll(nextState);
+    return { isSearchOpen: nextState, isCartOpen: false, isQuickViewOpen: false, isCompareModalOpen: false };
+  }),
 
   // Comparison Logic
   compareItems: [],
   isCompareModalOpen: false,
   addToCompare: (product) => set((state) => {
-    // Check if item already exists or if we've reached the industrial limit of 3
     if (state.compareItems.find(i => i.id === product.id)) return state;
     if (state.compareItems.length >= 3) return state; 
     return { compareItems: [...state.compareItems, product] };
@@ -110,8 +117,7 @@ export const useUIStore = create<UIState>((set) => ({
 }));
 
 /**
- * Seasoned Dev Utility: Prevents the background from scrolling 
- * when an overlay is active.
+ * Prevents the background from scrolling when an overlay is active.
  */
 function toggleBodyScroll(isOpen: boolean) {
   if (typeof window === 'undefined') return;

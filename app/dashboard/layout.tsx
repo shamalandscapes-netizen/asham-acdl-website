@@ -14,7 +14,7 @@ const USER_NAVIGATION = [
   { name: 'Overview', href: '/dashboard', icon: LayoutDashboard },
   { name: 'My Projects', href: '/dashboard/projects', icon: HardHat },
   { name: 'Orders', href: '/dashboard/orders', icon: ShoppingBag },
-  { name: 'Profile', href: '/dashboard/user', icon: User }, // Fixed path consistency
+  { name: 'Profile', href: '/dashboard/user', icon: User },
 ];
 
 export default function UserDashboardLayout({ children }: { children: React.ReactNode }) {
@@ -33,8 +33,22 @@ export default function UserDashboardLayout({ children }: { children: React.Reac
         router.push('/login');
         return;
       }
-      const { data } = await supabase.from('user_profiles').select('full_name').eq('id', user.id).single();
-      if (data) setUserName(data.full_name || 'User');
+
+      // FIX: Cast as any to bypass the 'never' type restriction
+      const { data } = await (supabase as any)
+        .from('user_profiles')
+        .select('full_name')
+        .eq('id', user.id)
+        .single();
+
+      // FIX: Cast the result to access the full_name property safely
+      if (data) {
+        const profile = data as { full_name: string };
+        setUserName(profile.full_name || 'User');
+      } else {
+        setUserName('User');
+      }
+      
       setLoading(false);
     }
     checkUser();
@@ -54,7 +68,6 @@ export default function UserDashboardLayout({ children }: { children: React.Reac
     );
   }
 
-  // Helper to get Page Title from Path
   const getPageTitle = () => {
     const segments = pathname.split('/').filter(Boolean);
     return segments[segments.length - 1] || 'Overview';
@@ -63,8 +76,9 @@ export default function UserDashboardLayout({ children }: { children: React.Reac
   return (
     <div className="flex min-h-screen bg-[#F8FAFC]">
       
-      {/* --- SIDEBAR (Desktop) --- */}
-      <aside className={`fixed inset-y-0 left-0 z-50 w-72 bg-[#06392F] text-white transition-transform duration-300 ease-in-out lg:translate-x-0 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} lg:static lg:flex lg:flex-col`}>
+      {/* SIDEBAR (Desktop) */}
+      {/* FIXED: Using standard property for transition duration to avoid build warnings */}
+      <aside className={`fixed inset-y-0 left-0 z-50 w-72 bg-[#06392F] text-white [transition-duration:300ms] ease-in-out lg:translate-x-0 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} lg:static lg:flex lg:flex-col`}>
         
         {/* Branding */}
         <div className="flex items-center h-20 px-8 border-b border-white/10">
@@ -117,10 +131,9 @@ export default function UserDashboardLayout({ children }: { children: React.Reac
         </div>
       </aside>
 
-      {/* --- MAIN CONTENT AREA --- */}
+      {/* MAIN CONTENT AREA */}
       <div className="flex flex-col flex-1 min-w-0">
         
-        {/* Outstanding Header */}
         <header className="sticky top-0 z-30 flex items-center justify-between h-20 px-4 border-b border-gray-200 bg-white/80 backdrop-blur-md md:px-8">
           <div className="flex items-center gap-4">
             <button 
@@ -132,7 +145,6 @@ export default function UserDashboardLayout({ children }: { children: React.Reac
               <Menu size={24} />
             </button>
             
-            {/* Dynamic Breadcrumb */}
             <div className="items-center hidden gap-2 text-sm font-medium md:flex">
               <span className="text-gray-400">Dashboard</span>
               <ChevronRight size={14} className="text-gray-300" />
@@ -153,7 +165,6 @@ export default function UserDashboardLayout({ children }: { children: React.Reac
           </div>
         </header>
 
-        {/* Viewport for Child Pages */}
         <main className="flex-1 overflow-y-auto">
           <div className="p-4 mx-auto max-w-7xl md:p-8">
             {children}

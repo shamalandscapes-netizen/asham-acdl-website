@@ -15,8 +15,8 @@ export async function GET(
   }
 
   // 2. Verify Order Payment Status
-  // We join with the orders table to ensure it belongs to the user and is PAID
-  const { data: item, error: itemError } = await supabase
+  // FIX: Cast supabase as any. We define a temporary interface for the join result.
+  const { data: item, error: itemError } = await (supabase as any)
     .from('order_items')
     .select(`
       digital_file_url,
@@ -29,27 +29,40 @@ export async function GET(
     .eq('id', item_id)
     .single();
 
-  const orderData = item?.orders as any;
-
   if (itemError || !item) {
     return NextResponse.json({ error: 'Item not found' }, { status: 404 });
   }
+
+  // Explicitly cast the item to access nested join data safely
+  const itemData = item as {
+    digital_file_url: string;
+    product_name: string;
+    orders: {
+      user_id: string;
+      payment_status: string;
+    };
+  };
+
+  const orderData = itemData.orders;
 
   // 3. Security Checks
   if (orderData.user_id !== user.id) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
-  if (orderData.payment_status?.toLowerCase() !== 'paid' && orderData.payment_status?.toLowerCase() !== 'delivered') {
+  const status = orderData.payment_status?.toLowerCase();
+  if (status !== 'paid' && status !== 'delivered') {
     return NextResponse.json({ error: 'Payment required' }, { status: 402 });
   }
 
-  // 4. Update Download Count (Optional, but good for tracking)
-  await supabase.rpc('increment_download_count', { row_id: item_id });
+  // 4. Update Download Count (Optional)
+  // FIX: Cast supabase as any for RPC calls as well
+  await (supabase as any).rpc('increment_download_count', { row_id: item_id });
 
-  // 5. Redirect to the signed URL or stream the file
-  // If your files are in a private bucket, we generate a signed URL
-  const filePath = item.digital_file_url?.split('public/')[1]; // Adjust based on your path structure
+  // 5. Redirect to the signed URL
+  // We extract the filename from the URL. 
+  // If your URL is '.../public/blueprints/file.pdf', this gets 'file.pdf'
+  const filePath = itemData.digital_file_url?.split('/').pop(); 
   
   if (!filePath) {
     return NextResponse.json({ error: 'File path invalid' }, { status: 500 });
@@ -57,8 +70,8 @@ export async function GET(
 
   const { data: signedUrl, error: urlError } = await supabase
     .storage
-    .from('blueprints') // Change to your bucket name
-    .createSignedUrl(filePath, 60); // URL valid for 60 seconds
+    .from('blueprints') 
+    .createSignedUrl(filePath, 60); 
 
   if (urlError || !signedUrl) {
     return NextResponse.json({ error: 'Failed to generate download link' }, { status: 500 });

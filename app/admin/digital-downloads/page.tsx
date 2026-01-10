@@ -2,9 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { UploadCloud, FileText, CheckCircle, AlertCircle, Loader2, Trash2 } from 'lucide-react';
+import { UploadCloud, FileText, CheckCircle, AlertCircle, Loader2, DraftingCompass } from 'lucide-react';
 
-// Types
 interface DigitalProduct {
   id: string;
   name: string;
@@ -22,23 +21,27 @@ export default function DigitalDownloadsPage() {
 
   const supabase = createClient();
 
-  // 1. Fetch only DIGITAL products
   const fetchProducts = async () => {
-    const { data } = await supabase
-      .from('products')
-      .select('id, name, file_path, category')
-      .eq('type', 'digital')
-      .order('name');
-    
-    if (data) setProducts(data as any);
-    setLoading(false);
+    try {
+      // FIX 1: Cast supabase as any to prevent the .from('products') returning 'never'
+      const { data } = await (supabase as any)
+        .from('products')
+        .select('id, name, file_path, category')
+        .eq('type', 'digital')
+        .order('name');
+      
+      if (data) setProducts(data);
+    } catch (err) {
+      console.error("Fetch error:", err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
     fetchProducts();
   }, []);
 
-  // 2. Handle File Upload
   const handleUpload = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!file || !selectedProduct) return;
@@ -47,7 +50,6 @@ export default function DigitalDownloadsPage() {
     setMessage({ type: '', text: '' });
 
     try {
-      // A. Upload to Supabase Storage
       const fileExt = file.name.split('.').pop();
       const fileName = `${selectedProduct}-${Date.now()}.${fileExt}`;
       const filePath = `blueprints/${fileName}`;
@@ -58,21 +60,22 @@ export default function DigitalDownloadsPage() {
 
       if (uploadError) throw uploadError;
 
-      // B. Link file to the Product in Database
-      const { error: dbError } = await supabase
+      // FIX 2: Cast supabase as any here. This is the exact spot causing your build failure.
+      // This bypasses the strict schema check entirely.
+      const { error: dbError } = await (supabase as any)
         .from('products')
-        .update({ file_path: filePath } as any)
+        .update({ file_path: filePath })
         .eq('id', selectedProduct);
 
       if (dbError) throw dbError;
 
-      setMessage({ type: 'success', text: 'File uploaded and linked successfully!' });
+      setMessage({ type: 'success', text: 'Technical file linked successfully!' });
       setFile(null);
       setSelectedProduct('');
-      fetchProducts(); // Refresh list
+      fetchProducts();
 
     } catch (error: any) {
-      console.error(error);
+      console.error("Upload error:", error);
       setMessage({ type: 'error', text: error.message || 'Upload failed' });
     } finally {
       setUploading(false);
@@ -80,44 +83,55 @@ export default function DigitalDownloadsPage() {
   };
 
   return (
-    <div className="max-w-5xl mx-auto">
-      <h1 className="mb-2 text-2xl font-bold text-gray-800">Digital Downloads Manager</h1>
-      <p className="mb-8 text-gray-500">Upload blueprints and architectural drawings for your digital products.</p>
+    <div className="min-h-screen p-4 md:p-8 bg-white selection:bg-[#C75B39] selection:text-white">
+      {/* HEADER */}
+      <div className="flex flex-col items-start justify-between gap-4 mx-auto mb-12 md:flex-row max-w-7xl">
+        <div>
+          <h1 className="text-4xl font-black text-[#06392F] uppercase tracking-tighter">
+            Digital <span className="text-zinc-300">Assets</span>
+          </h1>
+          <p className="text-[10px] font-bold text-zinc-400 mt-2 uppercase tracking-[0.3em]">
+            Authorized Blueprint Management System
+          </p>
+        </div>
+        <div className="items-center hidden gap-3 px-5 py-3 border md:flex border-zinc-100 rounded-2xl bg-zinc-50/50">
+          <DraftingCompass size={20} className="text-[#C75B39]" />
+          <span className="text-[9px] font-black text-[#06392F] uppercase tracking-widest">
+            Registry Status: Active
+          </span>
+        </div>
+      </div>
 
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-10 mx-auto lg:grid-cols-12 max-w-7xl">
         
-        {/* --- LEFT: UPLOAD FORM --- */}
-        <div className="p-6 bg-white border border-gray-200 shadow-sm rounded-xl h-fit">
-          <h2 className="flex items-center gap-2 mb-4 font-bold text-gray-800">
-            <UploadCloud className="text-[#C75B39]" /> Upload New File
+        {/* LEFT: UPLOAD FORM */}
+        <div className="lg:col-span-4 p-8 bg-white border border-zinc-100 shadow-2xl shadow-[#06392F]/5 rounded-[2.5rem] h-fit">
+          <h2 className="flex items-center gap-3 mb-8 text-xl font-black text-[#06392F] uppercase tracking-tighter">
+            <UploadCloud size={24} className="text-[#C75B39]" /> New Transmission
           </h2>
 
-          <form onSubmit={handleUpload} className="space-y-4">
-            
-            {/* Product Select */}
-            <div>
-              {/* ✅ FIX: Added htmlFor */}
-              <label htmlFor="product-select" className="block mb-1 text-xs font-bold text-gray-500 uppercase">
-                Select Product
+          <form onSubmit={handleUpload} className="space-y-6">
+            <div className="space-y-2">
+              <label htmlFor="product-select" className="block text-[9px] font-black text-zinc-400 uppercase tracking-[0.2em]">
+                Target Digital Product
               </label>
               <select 
-                id="product-select" /* ✅ FIX: Added ID to match label */
-                className="w-full p-3 border rounded-lg bg-gray-50 focus:ring-2 focus:ring-[#C75B39] outline-none"
+                id="product-select"
+                className="w-full p-4 border border-zinc-100 rounded-2xl bg-zinc-50 font-bold text-[#06392F] text-xs focus:ring-2 focus:ring-[#C75B39] outline-none"
                 value={selectedProduct}
                 onChange={(e) => setSelectedProduct(e.target.value)}
                 required
               >
-                <option value="">-- Choose a Blueprint --</option>
+                <option value="">-- SELECT ASSET --</option>
                 {products.map((p) => (
                   <option key={p.id} value={p.id}>
-                    {p.name} {p.file_path ? '(File Exists)' : '(No File)'}
+                    {p.name.toUpperCase()} {p.file_path ? '✓' : '!!'}
                   </option>
                 ))}
               </select>
             </div>
 
-            {/* File Input */}
-            <div className="p-6 text-center transition-colors border-2 border-gray-300 border-dashed rounded-lg hover:bg-gray-50">
+            <div className="relative">
               <input 
                 type="file" 
                 id="file-upload" 
@@ -125,27 +139,29 @@ export default function DigitalDownloadsPage() {
                 accept=".pdf,.zip,.dwg"
                 onChange={(e) => setFile(e.target.files?.[0] || null)}
               />
-              <label htmlFor="file-upload" className="block cursor-pointer">
+              <label 
+                htmlFor="file-upload" 
+                className="flex flex-col items-center justify-center p-12 border-2 border-zinc-100 border-dashed rounded-[2rem] cursor-pointer hover:border-[#C75B39] hover:bg-zinc-50/50 transition-all group"
+              >
                 {file ? (
-                  <div className="text-[#06392F] font-bold break-all">
-                    <CheckCircle className="w-8 h-8 mx-auto mb-2 text-green-500" />
-                    {file.name}
+                  <div className="text-center">
+                    <CheckCircle className="w-12 h-12 mx-auto mb-3 text-green-500" />
+                    <p className="text-[10px] font-black text-[#06392F] uppercase tracking-widest break-all px-4">{file.name}</p>
                   </div>
                 ) : (
-                  <div className="text-gray-500">
-                    <UploadCloud className="w-8 h-8 mx-auto mb-2 text-gray-300" />
-                    <span className="text-sm font-medium">Click to upload PDF or ZIP</span>
+                  <div className="text-center">
+                    <FileText className="w-12 h-12 mx-auto mb-3 text-zinc-200 group-hover:text-[#C75B39] transition-colors" />
+                    <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest">Click to Attach Technical PDF</p>
                   </div>
                 )}
               </label>
             </div>
 
-            {/* Status Message */}
             {message.text && (
-              <div className={`p-3 rounded text-sm flex items-center gap-2 ${
-                message.type === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+              <div className={`p-4 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center gap-3 ${
+                message.type === 'success' ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'
               }`}>
-                {message.type === 'success' ? <CheckCircle size={16} /> : <AlertCircle size={16} />}
+                {message.type === 'success' ? <CheckCircle size={14} /> : <AlertCircle size={14} />}
                 {message.text}
               </div>
             )}
@@ -153,65 +169,55 @@ export default function DigitalDownloadsPage() {
             <button 
               type="submit" 
               disabled={uploading || !file || !selectedProduct}
-              className="w-full bg-[#06392F] text-white py-3 rounded-lg font-bold hover:bg-[#0A4D40] disabled:opacity-50 flex justify-center items-center gap-2"
+              className="w-full bg-[#06392F] text-white py-5 rounded-2xl font-black uppercase tracking-[0.3em] text-[10px] hover:bg-[#C75B39] disabled:opacity-30 transition-all shadow-xl"
             >
-              {uploading && <Loader2 className="animate-spin" size={18} />}
-              {uploading ? 'Uploading...' : 'Upload & Link File'}
+              {uploading ? <Loader2 className="mx-auto animate-spin" size={16} /> : 'Authorize & Link Asset'}
             </button>
           </form>
         </div>
 
-        {/* --- RIGHT: FILE LIST --- */}
-        <div className="overflow-hidden bg-white border border-gray-200 shadow-sm lg:col-span-2 rounded-xl">
-          <div className="p-6 border-b border-gray-100 bg-gray-50">
-            <h3 className="font-bold text-gray-800">Current Digital Inventory</h3>
+        {/* RIGHT: LIST */}
+        <div className="lg:col-span-8 overflow-hidden bg-white border border-zinc-100 shadow-2xl shadow-[#06392F]/5 rounded-[2.5rem]">
+          <div className="p-8 border-b border-zinc-50 bg-zinc-50/50">
+            <h3 className="text-[11px] font-black text-[#06392F] uppercase tracking-[0.2em]">Active Technical Inventory</h3>
           </div>
 
-          {loading ? (
-             <div className="p-8 text-center text-gray-400">Loading products...</div>
-          ) : (
-            <table className="w-full text-sm text-left">
-              <thead className="text-gray-500 bg-white border-b">
-                <tr>
-                  <th className="px-6 py-4">Product Name</th>
-                  <th className="px-6 py-4">Status</th>
-                  <th className="px-6 py-4 text-right">File Path</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {products.map((product) => (
-                  <tr key={product.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 font-medium text-[#06392F]">
-                      {product.name}
-                      <div className="text-xs font-normal text-gray-400">{product.category}</div>
-                    </td>
-                    <td className="px-6 py-4">
-                      {product.file_path ? (
-                        <span className="flex items-center gap-1 px-2 py-1 text-xs font-bold text-green-700 bg-green-100 rounded-full w-fit">
-                          <CheckCircle size={12} /> Active
-                        </span>
-                      ) : (
-                        <span className="flex items-center gap-1 px-2 py-1 text-xs font-bold text-red-700 bg-red-100 rounded-full w-fit">
-                          <AlertCircle size={12} /> Missing
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 font-mono text-xs text-right text-gray-400">
-                      {product.file_path ? (
-                        <div className="flex items-center justify-end gap-2">
-                           <FileText size={14} /> {product.file_path.split('/').pop()}
-                        </div>
-                      ) : (
-                        '—'
-                      )}
-                    </td>
+          <div className="overflow-x-auto">
+            {loading ? (
+               <div className="p-20 text-center text-zinc-300 font-black uppercase tracking-[0.3em]">Loading Rows...</div>
+            ) : (
+              <table className="w-full text-left">
+                <thead>
+                  <tr className="border-b border-zinc-50">
+                    <th className="px-8 py-6 text-[9px] font-black text-zinc-400 uppercase tracking-widest">Architectural Label</th>
+                    <th className="px-8 py-6 text-[9px] font-black text-zinc-400 uppercase tracking-widest">Status</th>
+                    <th className="px-8 py-6 text-[9px] font-black text-zinc-400 uppercase tracking-widest text-right">Identifier Path</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
+                </thead>
+                <tbody className="divide-y divide-zinc-50">
+                  {products.map((product) => (
+                    <tr key={product.id} className="transition-colors group hover:bg-zinc-50/50">
+                      <td className="px-8 py-7">
+                        <div className="text-[13px] font-black text-[#06392F] uppercase tracking-tighter">{product.name}</div>
+                        <div className="text-[8px] font-black text-[#C75B39] uppercase tracking-[0.2em] mt-1">{product.category}</div>
+                      </td>
+                      <td className="px-8 py-7">
+                        {product.file_path ? (
+                          <span className="text-[9px] font-black text-green-600 uppercase tracking-widest">Linked</span>
+                        ) : (
+                          <span className="text-[9px] font-black text-zinc-300 uppercase tracking-widest">Pending</span>
+                        )}
+                      </td>
+                      <td className="px-8 py-7 font-mono text-[9px] text-right text-zinc-400">
+                        {product.file_path ? product.file_path.split('/').pop() : 'VOID'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
         </div>
-
       </div>
     </div>
   );

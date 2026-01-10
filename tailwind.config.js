@@ -6,7 +6,7 @@ module.exports = {
     './components/**/*.{ts,tsx}',
     './app/**/*.{ts,tsx}',
     './src/**/*.{ts,tsx}',
-    './lib/**/*.{ts,tsx}', // Ensure styles in lib utils are caught
+    './lib/**/*.{ts,tsx}', 
   ],
   theme: {
     container: {
@@ -73,5 +73,8 @@ module.exports = {
       },
     },
   },
-  plugins: [require("tailwindcss-animate")],
+  plugins: [
+    require("tailwindcss-animate"),
+    require("@tailwindcss/typography"), // Added this to fix formatting/spacing
+  ],
 }

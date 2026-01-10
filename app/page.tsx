@@ -5,6 +5,7 @@ import FeaturedProjects from '@/components/FeaturedProjects';
 import ProductsPreview from '@/components/ProductsPreview'; 
 import TestimonialsCarousel from '@/components/TestimonialsCarousel';
 import CTABanner from '@/components/CTABanner';
+import BlogPreview from '@/components/blog/BlogPreview'; // New Component
 
 export default function Home() {
   return (
@@ -27,10 +28,14 @@ export default function Home() {
       {/* 5. Projects: Proof of your work */}
       <FeaturedProjects />
 
-      {/* 6. Testimonials: Social proof */}
+      {/* 6. The Journal: Authority & Insights 
+          Positioned before social proof to build intellectual trust. */}
+      <BlogPreview />
+
+      {/* 7. Testimonials: Social proof */}
       <TestimonialsCarousel />
 
-      {/* 7. Final Call to Action */}
+      {/* 8. Final Call to Action */}
       <CTABanner 
         title="Ready to Start Your Project?" 
         subtitle="From architectural design to material supply, we are your trusted partner in construction."

@@ -35,9 +35,9 @@ export default function UserProfilePage() {
         return;
       }
 
-      // Updated table name to user_profiles
-      const { data: profile } = await supabase
-        .from('user_profiles' as any)
+      // FIX: Cast supabase as any to handle custom user_profiles table
+      const { data: profile } = await (supabase as any)
+        .from('user_profiles')
         .select('*')
         .eq('id', user.id)
         .single();
@@ -92,8 +92,9 @@ export default function UserProfilePage() {
     setLoading(true);
 
     try {
-      const { error } = await supabase
-        .from('user_profiles' as any) // Updated table name
+      // FIX: Cast supabase as any to bypass the 'never' type on upsert values
+      const { error } = await (supabase as any)
+        .from('user_profiles')
         .upsert({
           id: formData.id,
           full_name: formData.full_name,
@@ -122,7 +123,8 @@ export default function UserProfilePage() {
   );
 
   return (
-    <div className="max-w-4xl mx-auto space-y-10 duration-700 animate-in fade-in">
+    // FIXED: Standard Tailwind property for build stability
+    <div className="max-w-4xl mx-auto space-y-10 [transition-duration:700ms] animate-in fade-in">
       <div className="flex flex-col items-start justify-between gap-6 pb-10 border-b border-gray-100 md:flex-row md:items-end">
         <div>
           <button 

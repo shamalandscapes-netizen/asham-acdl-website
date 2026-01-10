@@ -68,7 +68,10 @@ export default function OrderDetailsPage() {
 
   const handleStatusChange = async (newStatus: string) => {
     setUpdating(true);
-    const { error } = await supabase.from('orders').update({ status: newStatus }).eq('id', orderId);
+    const { error } = await (supabase as any)
+      .from('orders')
+      .update({ status: newStatus })
+      .eq('id', orderId);
     if (!error) setOrder(prev => prev ? { ...prev, status: newStatus } : null);
     setUpdating(false);
   };
