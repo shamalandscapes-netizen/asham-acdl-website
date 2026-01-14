@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useState, Suspense, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -16,8 +16,12 @@ import {
   CheckCircle2
 } from 'lucide-react';
 import Button from '@/components/ui/Button'; 
+import toast from 'react-hot-toast'; // Ensure this is installed
 
-// --- Google Icon SVG ---
+interface UserProfile {
+  is_active: boolean;
+}
+
 const GoogleIcon = () => (
   <svg className="w-5 h-5" viewBox="0 0 24 24">
     <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
@@ -34,44 +38,90 @@ function LoginForm() {
   const errorParam = searchParams.get('error');
   const supabase = createClient();
 
-  // Shared UI States
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [authMethod, setAuthMethod] = useState<'email' | 'phone'>('email');
 
-  // Email States
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
-  // Phone/OTP States
   const [phoneNumber, setPhoneNumber] = useState('');
   const [otpCode, setOtpCode] = useState('');
   const [isOtpSent, setIsOtpSent] = useState(false);
 
-  // Helper: Role-based Redirection Logic
-  const handleRoleRedirect = (user: any) => {
-    const userRole = user?.app_metadata?.role || user?.user_metadata?.role || 'customer';
-    const adminRoles = ['super_admin', 'admin', 'staff', 'it_admin'];
-    const isElevated = adminRoles.includes(userRole);
-
-    // If middleware sent them here with a specific destination, use it.
-    // Otherwise, route based on role.
-    const destination = requestedRedirect || (isElevated ? '/admin' : '/dashboard');
+  /**
+   * 1. IMPROVED: Personalized Role-based Redirection
+   */
+  const handleRoleRedirect = async (user: any) => {
+    const rawRole = user?.app_metadata?.role || user?.user_metadata?.role || 'customer';
+    const fullName = user?.user_metadata?.full_name || 'Team Member';
+    const firstName = fullName.split(' ')[0];
+    const userRole = String(rawRole).toLowerCase();
     
-    router.push(destination);
-    router.refresh(); // Crucial to update Server Components
+    const adminRoles = ['super_admin', 'admin', 'it_admin', 'accounts', 'employee'];
+    const isElevated = adminRoles.includes(userRole);
+    
+    try {
+      const { data: profile } = await supabase
+        .from('user_profiles')
+        .select('is_active')
+        .eq('id', user.id)
+        .single<UserProfile>();
+
+      if (profile && profile.is_active === false) {
+        await supabase.auth.signOut();
+        setError("Your account has been deactivated.");
+        setLoading(false);
+        return;
+      }
+
+      let destination = '';
+      let welcomeMsg = '';
+
+      if (isElevated) {
+        if (userRole === 'super_admin') {
+          destination = '/admin';
+          welcomeMsg = `Welcome, Chief ${firstName}. Command Center Active.`;
+        } else {
+          destination = '/admin/payments';
+          welcomeMsg = `Hello ${firstName}, Revenue Ledger access granted.`;
+        }
+      } else {
+        destination = requestedRedirect || '/dashboard';
+        welcomeMsg = `Welcome back, ${firstName}!`;
+      }
+
+      // Trigger Professional Greeting Toast
+      toast.success(welcomeMsg, {
+        duration: 4000,
+        icon: isElevated ? '???' : '??',
+        style: {
+          background: '#06392F',
+          color: '#fff',
+          borderRadius: '1rem',
+          fontSize: '12px',
+          fontWeight: 'bold',
+          textTransform: 'uppercase',
+          letterSpacing: '0.1em'
+        }
+      });
+      
+      router.push(destination);
+      setTimeout(() => router.refresh(), 150);
+      
+    } catch (err) {
+      router.push(isElevated ? '/admin/payments' : '/dashboard');
+    }
   };
 
   useEffect(() => {
     if (errorParam === 'auth-callback-failed') {
-      setError('The security link has expired or is invalid. Please try again.');
+      setError('The security link has expired or is invalid.');
     } else if (errorParam === 'verification-failed') {
-      setError('Could not verify your identity. Please sign in again.');
+      setError('Could not verify identity. Please sign in again.');
     }
   }, [errorParam]);
-
-  // --- Handlers ---
 
   const handleGoogleLogin = async () => {
     setLoading(true);
@@ -97,10 +147,7 @@ function LoginForm() {
     try {
       const { data, error: authError } = await supabase.auth.signInWithPassword({ email, password });
       if (authError) throw authError;
-
-      if (data.user) {
-        handleRoleRedirect(data.user);
-      }
+      if (data.user) await handleRoleRedirect(data.user);
     } catch (err: any) {
       setError(err?.message || 'Invalid email or password.');
       setLoading(false);
@@ -117,6 +164,7 @@ function LoginForm() {
         const { error } = await supabase.auth.signInWithOtp({ phone: phoneNumber });
         if (error) throw error;
         setIsOtpSent(true);
+        toast.success("Verification code sent to your phone.");
       } else {
         const { data, error } = await supabase.auth.verifyOtp({
           phone: phoneNumber,
@@ -124,10 +172,7 @@ function LoginForm() {
           type: 'sms',
         });
         if (error) throw error;
-        
-        if (data.user) {
-          handleRoleRedirect(data.user);
-        }
+        if (data.user) await handleRoleRedirect(data.user);
       }
     } catch (err: any) {
       setError(err?.message || 'Phone authentication failed.');
@@ -138,8 +183,6 @@ function LoginForm() {
 
   return (
     <div className="w-full px-4 py-8 bg-white border border-gray-100 shadow-2xl sm:rounded-2xl sm:px-10">
-      
-      {/* Header */}
       <div className="mb-8 text-center">
         <Link href="/" className="inline-flex items-center justify-center h-14 w-14 bg-[#06392F] rounded-2xl text-white font-bold text-3xl shadow-xl mb-4 hover:scale-105 transition-transform">
           A
@@ -150,7 +193,6 @@ function LoginForm() {
         </p>
       </div>
 
-      {/* Social Login */}
       <button
         onClick={handleGoogleLogin}
         disabled={loading}
@@ -167,7 +209,6 @@ function LoginForm() {
         </div>
       </div>
 
-      {/* Auth Method Switcher Tabs */}
       <div className="flex p-1 mb-8 bg-gray-50 rounded-xl">
         <button
           type="button"
@@ -185,7 +226,6 @@ function LoginForm() {
         </button>
       </div>
 
-      {/* Main Forms */}
       {authMethod === 'email' ? (
         <form className="space-y-5" onSubmit={handleEmailLogin}>
           <div>
@@ -247,9 +287,6 @@ function LoginForm() {
                   placeholder="+254 711 70XXXX"
                 />
               </div>
-              <p className="mt-2 text-[10px] text-gray-400 leading-relaxed uppercase tracking-tighter">
-                Enter number with country code (e.g. +254 for Kenya)
-              </p>
             </div>
           ) : (
             <div className="duration-300 animate-in fade-in zoom-in">
@@ -270,13 +307,6 @@ function LoginForm() {
                   placeholder="000000"
                 />
               </div>
-              <button 
-                type="button" 
-                onClick={() => setIsOtpSent(false)}
-                className="mt-4 w-full text-xs font-bold text-[#C75B39] hover:underline"
-              >
-                ← Change phone number
-              </button>
             </div>
           )}
           <Button type="submit" className="w-full py-4 text-lg bg-[#06392F] text-white rounded-xl shadow-lg" isLoading={loading}>
@@ -285,9 +315,8 @@ function LoginForm() {
         </form>
       )}
 
-      {/* Error Notification */}
       {error && (
-        <div className="flex items-start gap-3 p-4 mt-6 border border-red-50 rounded-xl bg-red-50/50 animate-in slide-in-from-bottom-2">
+        <div className="flex items-start gap-3 p-4 mt-6 border border-red-50 rounded-xl bg-red-50/50">
           <AlertCircle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
           <p className="text-sm font-bold leading-tight text-red-800">{error}</p>
         </div>

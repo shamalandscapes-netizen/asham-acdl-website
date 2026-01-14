@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import Link from 'next/link';
 import { Briefcase, MapPin, Clock, ArrowRight, CheckCircle, Mail } from 'lucide-react';

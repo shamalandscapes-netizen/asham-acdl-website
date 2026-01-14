@@ -1,106 +1,213 @@
 'use client';
 
-import { useUIStore } from '@/store/ui-store';
-import { useCartStore } from '@/store/cart-store';
-import { X, ShoppingBag, Check, Shield } from 'lucide-react';
+import { useMemo, useCallback, useState } from 'react';
 import Image from 'next/image';
-import { formatCurrency, cn } from '@/lib/utils';
+import Link from 'next/link';
+import { 
+  X, 
+  ShoppingBag, 
+  Check, 
+  Shield, 
+  ArrowRight, 
+  Package, 
+  Truck 
+} from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
+import { useUIStore } from '@/store/ui-store';
+import { useCartStore } from '@/store/cart-store';
+import { formatCurrency } from '@/lib/utils/formatters';
+import { cn } from '@/lib/utils';
+
+/* -------------------------------------------------
+   Types
+-------------------------------------------------- */
+type Product = {
+  id: string;
+  name: string;
+  slug: string;
+  price: number;
+  description?: string;
+  image_url?: string;
+  image_urls?: string[];
+  is_digital?: boolean;
+  category?: string;
+};
+
+/* -------------------------------------------------
+   Component
+-------------------------------------------------- */
 export function QuickViewModal() {
   const { isQuickViewOpen, selectedProduct, closeQuickView } = useUIStore();
   const addItem = useCartStore((state) => state.addItem);
 
+  /* ------------------ Images (typed) ------------------ */
+  const images = useMemo<string[]>(() => {
+    if (!selectedProduct) return [];
+    if (selectedProduct.image_urls?.length) return selectedProduct.image_urls;
+    if (selectedProduct.image_url) return [selectedProduct.image_url];
+    return [];
+  }, [selectedProduct]);
+
+  const [activeImage, setActiveImage] = useState<number>(0);
+
+  /* ------------------ Handlers ------------------ */
+  const handleAddToCart = useCallback(() => {
+    if (!selectedProduct) return;
+
+    addItem({
+      id: selectedProduct.id,
+      name: selectedProduct.name,
+      price: selectedProduct.price,
+      image_url: images[0],
+      is_digital: selectedProduct.is_digital || false,
+      quantity: 1,
+    });
+
+    toast.success(`${selectedProduct.name} added to cart`);
+    closeQuickView();
+  }, [addItem, selectedProduct, images, closeQuickView]);
+
+  /* ------------------ Guard AFTER hooks ------------------ */
   if (!isQuickViewOpen || !selectedProduct) return null;
 
-  const handleAddToCart = () => {
-    addItem(selectedProduct);
-    toast.success(`${selectedProduct.name} added to manifest`);
-    closeQuickView();
-  };
-
+  /* -------------------------------------------------
+     Render
+  -------------------------------------------------- */
   return (
-    <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
-      {/* Backdrop with premium blur */}
-      <div 
-        className="absolute inset-0 bg-[#06392F]/40 backdrop-blur-md animate-in fade-in duration-500" 
-        onClick={closeQuickView} 
+    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+      {/* Backdrop */}
+      <div
+        className="absolute inset-0 bg-[#06392F]/60 backdrop-blur-xl"
+        onClick={closeQuickView}
       />
-      
-      {/* Content Container */}
-      <div className="relative bg-white w-full max-w-5xl max-h-[90vh] overflow-hidden rounded-[2rem] shadow-2xl flex flex-col lg:flex-row animate-in zoom-in-95 slide-in-from-bottom-4 duration-500">
-        
-        {/* Close Button */}
-        <button 
+
+      {/* Modal */}
+      <div className="relative bg-white w-full max-w-6xl rounded-[2.5rem] overflow-hidden shadow-2xl flex flex-col lg:flex-row">
+
+        {/* Close */}
+        <button
           onClick={closeQuickView}
-          title="Close Preview"
-          aria-label="Close Preview"
-          className="absolute z-20 p-2 transition-all border border-gray-100 rounded-full shadow-sm top-6 right-6 bg-white/80 backdrop-blur-md hover:bg-white hover:scale-110"
+          className="absolute z-20 top-6 right-6 bg-white p-3 rounded-full shadow hover:bg-[#C75B39] hover:text-white transition"
         >
-          <X className="w-5 h-5 text-[#06392F]" />
+          <X className="w-5 h-5" />
         </button>
 
-        {/* Product Visual Area */}
-        <div className="relative w-full lg:w-[55%] h-80 lg:h-auto bg-[#F9F9F9]">
-          {selectedProduct.image_url ? (
-            <Image 
-              src={selectedProduct.image_url} 
-              alt={selectedProduct.name}
-              fill
-              className="object-contain p-12"
-              priority
-            />
-          ) : (
-            <div className="flex items-center justify-center h-full text-[#06392F]/20 font-black uppercase tracking-widest">No Image Available</div>
+        {/* LEFT — Image Gallery */}
+        <div className="relative w-full lg:w-1/2 bg-[#F8F9F8] p-6 flex flex-col">
+          <div className="relative flex-1 overflow-hidden bg-white rounded-3xl">
+            {images.length ? (
+              <Image
+                src={images[activeImage]}
+                alt={selectedProduct.name}
+                fill
+                priority
+                className="object-contain transition-transform duration-700"
+              />
+            ) : (
+              <div className="flex items-center justify-center h-full text-gray-300">
+                <Package size={80} />
+              </div>
+            )}
+          </div>
+
+          {/* Thumbnails */}
+          {images.length > 1 && (
+            <div className="flex justify-center gap-3 mt-4">
+              {images.map((img: string, index: number) => (
+                <button
+                  key={img}
+                  onClick={() => setActiveImage(index)}
+                  className={cn(
+                    "relative w-20 h-20 rounded-xl overflow-hidden border transition",
+                    activeImage === index
+                      ? "border-[#C75B39]"
+                      : "border-gray-200 opacity-70 hover:opacity-100"
+                  )}
+                >
+                  <Image
+                    src={img}
+                    alt={`${selectedProduct.name} ${index + 1}`}
+                    fill
+                    className="object-cover"
+                  />
+                </button>
+              ))}
+            </div>
           )}
         </div>
 
-        {/* Product Details Area */}
-        <div className="w-full lg:w-[45%] p-8 lg:p-12 overflow-y-auto flex flex-col bg-white">
-          <div className="flex-1">
-            <div className="flex items-center gap-2 mb-4">
-              <span className="bg-[#06392F]/5 text-[#06392F] px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border border-[#06392F]/10">
-                {selectedProduct.category || 'Structural Material'}
-              </span>
-              <span className="flex items-center gap-1 text-[10px] font-bold text-green-600 uppercase tracking-widest">
-                <Shield className="w-3 h-3" /> NCA Certified
-              </span>
-            </div>
-
-            <h2 className="text-4xl font-black uppercase tracking-tighter text-[#06392F] mb-2 leading-[0.9]">
-              {selectedProduct.name}
-            </h2>
-            
-            <p className="text-3xl font-light text-[#C75B39] mb-8">
-              {formatCurrency(selectedProduct.price)}
-            </p>
-            
-            <div className="space-y-6">
-              <div className="font-medium leading-relaxed prose-sm prose text-gray-600">
-                {selectedProduct.description || "High-durability structural material sourced for Asham Design Construction projects. Meets all regional safety standards for Kenya and Uganda."}
-              </div>
-
-              <div className="grid grid-cols-1 gap-3 py-6 border-t border-gray-100">
-                <div className="flex items-center gap-3 text-[11px] font-bold uppercase tracking-wider text-gray-500">
-                  <Check className="w-4 h-4 text-[#06392F]" /> Logistics-ready for site delivery
-                </div>
-                <div className="flex items-center gap-3 text-[11px] font-bold uppercase tracking-wider text-gray-500">
-                  <Check className="w-4 h-4 text-[#06392F]" /> Bulk pricing available
-                </div>
-              </div>
-            </div>
+        {/* RIGHT — Details */}
+        <div className="w-full p-8 overflow-y-auto lg:w-1/2 lg:p-14">
+          <div className="flex items-center gap-3 mb-6">
+            <span className="bg-[#06392F] text-white px-4 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest">
+              {selectedProduct.category}
+            </span>
+            <span className="flex items-center gap-1.5 text-[9px] font-black text-emerald-600 uppercase bg-emerald-50 px-3 py-1 rounded-lg">
+              <Shield className="w-3 h-3" /> Verified
+            </span>
           </div>
 
-          <button
-            onClick={handleAddToCart}
-            title={`Add ${selectedProduct.name} to Cart`}
-            className="mt-8 w-full py-5 bg-[#06392F] text-white font-black uppercase tracking-[0.2em] rounded-xl flex items-center justify-center gap-4 hover:bg-[#042a22] transition-all shadow-xl active:scale-[0.98]"
-          >
-            <ShoppingBag className="w-5 h-5" />
-            Add to Manifest
-          </button>
+          <h2 className="text-4xl font-black text-[#06392F] mb-4">
+            {selectedProduct.name}
+          </h2>
+
+          <p className="text-3xl font-black text-[#C75B39] mb-6">
+            {formatCurrency(selectedProduct.price)}
+          </p>
+
+          <p className="mb-10 leading-relaxed text-gray-500">
+            {selectedProduct.description || 'Premium construction-grade material.'}
+          </p>
+
+          <div className="grid grid-cols-2 gap-4 mb-12">
+            <InfoCard icon={<Truck size={14} />} label="Delivery" value="24–48 hrs" />
+            <InfoCard icon={<Check size={14} />} label="Standards" value="ISO / NCA" />
+          </div>
+
+          {/* Actions */}
+          <div className="space-y-4">
+            <button
+              onClick={handleAddToCart}
+              className="w-full py-5 bg-[#06392F] text-white font-black uppercase tracking-widest rounded-2xl hover:bg-[#C75B39] transition"
+            >
+              <ShoppingBag className="inline mr-2" />
+              Add to Cart
+            </button>
+
+            <Link
+              href={`/products/${selectedProduct.slug}`}
+              onClick={closeQuickView}
+              className="block w-full py-5 font-black tracking-widest text-center uppercase border border-gray-200 rounded-2xl hover:bg-gray-50"
+            >
+              Full Details <ArrowRight className="inline ml-2" />
+            </Link>
+          </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+/* -------------------------------------------------
+   Small Helper
+-------------------------------------------------- */
+function InfoCard({
+  icon,
+  label,
+  value,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="p-4 border rounded-2xl bg-gray-50">
+      <div className="flex items-center gap-2 text-[#06392F] mb-1">
+        {icon}
+        <p className="text-[10px] font-black uppercase tracking-widest">{label}</p>
+      </div>
+      <p className="text-xs font-bold text-gray-600">{value}</p>
     </div>
   );
 }

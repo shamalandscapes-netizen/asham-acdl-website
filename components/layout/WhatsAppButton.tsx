@@ -29,7 +29,7 @@ export default function WhatsAppButton() {
     }
 
     // Proceed to WhatsApp
-    const phoneNumber = "254700000000"; // Replace with your actual number
+    const phoneNumber = "254712575077"; // Replace with your actual number
     const message = "Hello Asham ACDL, I'd like to discuss a project.";
     window.open(`https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`, '_blank');
   };

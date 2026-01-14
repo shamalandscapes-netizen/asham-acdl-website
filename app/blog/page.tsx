@@ -68,7 +68,7 @@ export default async function BlogPage() {
                 src={featuredPost.image_url || '/placeholder-blog.jpg'}
                 alt={featuredPost.title} 
     
-                className="object-cover w-full h-full transition-all duration-[1500] ease-out group-hover:scale-105"
+                className="object-cover w-full h-full transition-all transition-duration-[1500ms] ease-out group-hover:scale-105"
               />
             </div>
             <div className="flex flex-col justify-center p-8 space-y-6 lg:col-span-5 lg:p-16">

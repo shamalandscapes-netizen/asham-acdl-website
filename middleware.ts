@@ -11,7 +11,9 @@ export async function middleware(request: NextRequest) {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        getAll() { return request.cookies.getAll() },
+        getAll() {
+          return request.cookies.getAll()
+        },
         setAll(cookiesToSet) {
           cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
           response = NextResponse.next({ request })
@@ -23,39 +25,53 @@ export async function middleware(request: NextRequest) {
     }
   )
 
+  // Get current user session
   const { data: { user } } = await supabase.auth.getUser()
   
-  // Extract role from metadata or default to customer
-  const userRole = user?.app_metadata?.role || user?.user_metadata?.role || 'customer'
+  // 1. ROBUST ROLE DETECTION
+  // Gabriel has 'employee' in user_metadata, Noel has 'super_admin' in app_metadata
+  const rawRole = user?.app_metadata?.role || user?.user_metadata?.role || 'customer';
+  const userRole = String(rawRole).toLowerCase();
+
   const path = request.nextUrl.pathname
 
-  // DEBUGGING: Watch your terminal to see why Noel is being redirected
-  console.log(`MW Trace: ${user?.email || 'Guest'} -> ${path} [Role: ${userRole}]`)
+  // --- 2. ACCESS CONFIGURATION ---
+  const adminRoles = ['super_admin', 'admin', 'it_admin', 'accounts', 'employee']
+  const isElevated = adminRoles.includes(userRole)
 
+  // Pages
   const isAuthPage = path.startsWith('/login') || path.startsWith('/register')
   const isAdminPage = path.startsWith('/admin')
-  const isProtectedPage = isAdminPage || path.startsWith('/dashboard') || path.startsWith('/checkout')
+  const isCustomerDashboard = path.startsWith('/dashboard')
+  
+  // Protected areas
+  const isProtectedPage = isAdminPage || isCustomerDashboard || path.startsWith('/checkout')
 
-  // Logic 1: Guest trying to access protected pages
+  // --- DEBUG LOGGING --- 
+  // This helps you see what's happening in your terminal
+  if (isProtectedPage && user) {
+    console.log(`MW Trace: ${user.email} | Role: ${userRole} | Path: ${path} | Allowed: ${isElevated}`);
+  }
+
+  // --- 3. LOGIC: GUESTS (Not logged in) ---
   if (!user && isProtectedPage) {
     const url = new URL('/login', request.url)
     url.searchParams.set('redirect', path)
     return NextResponse.redirect(url)
   }
 
-  // Logic 2: Logged in users
+  // --- 4. LOGIC: AUTHENTICATED USERS ---
   if (user) {
-    const adminRoles = ['super_admin', 'admin', 'staff', 'it_admin']
-    const isElevated = adminRoles.includes(userRole)
-
-    // Kick non-admins away from /admin
+    // SECURITY: Prevent regular customers from accessing /admin
     if (isAdminPage && !isElevated) {
+      console.warn(`Unauthorized Access blocked for: ${user.email}`);
       return NextResponse.redirect(new URL('/dashboard', request.url))
     }
 
-    // Kick logged-in users away from /login
+    // REDIRECT: Prevent logged-in users from seeing login/register pages
     if (isAuthPage) {
-      return NextResponse.redirect(new URL(isElevated ? '/admin' : '/dashboard', request.url))
+      const destination = isElevated ? '/admin' : '/dashboard'
+      return NextResponse.redirect(new URL(destination, request.url))
     }
   }
 
@@ -63,5 +79,15 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!api/webhooks|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)'],
+  matcher: [
+    /*
+     * Match all request paths except for the ones starting with:
+     * - api (API routes)
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     * - Public images (svg, png, etc)
+     */
+    '/((?!api/webhooks|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+  ],
 }

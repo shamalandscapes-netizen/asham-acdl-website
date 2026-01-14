@@ -1,183 +1,194 @@
-'use client';
-
-import { useEffect, useState } from 'react';
-import { 
-  Loader2, 
-  ShieldCheck, 
-  ChevronRight, 
-  Truck, 
-  CheckCircle2, 
-  AlertTriangle,
-  FileText,
-  Info
-} from 'lucide-react';
-import Link from 'next/link';
+import { createClient } from '@/lib/utils/supabase/server';
+import { notFound } from 'next/navigation';
 import Image from 'next/image';
+import Link from 'next/link';
+import {
+  ChevronRight,
+  ShieldCheck,
+  Truck,
+  AlertTriangle,
+  CheckCircle2,
+} from 'lucide-react';
 import { formatCurrency } from '@/lib/utils/formatters';
+
+// COMPONENTS
 import { ProductPurchase } from '@/components/products/product-purchase';
+import { ProductCard } from '@/components/products/product-card';
+import { CompareBar } from '@/components/products/compare-bar';
+import { QuickViewModal } from '@/components/products/quick-view-modal';
+import { MobileAddToCart } from '@/components/products/mobile-add-to-cart';
 
-interface PageProps {
-  params: {
-    slug: string;
-    id: string;
-  };
-}
+export default async function ProductDetailPage({
+  params,
+}: {
+  params: { slug: string };
+}) {
+  const supabase = createClient();
+  const { slug } = params;
 
-export default function ProductDetailPage({ params }: PageProps) {
-  const [product, setProduct] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const { slug, id } = params;
+  const { data: product, error } = await supabase
+    .from('products')
+    .select('*')
+    .eq('slug', slug)
+    .single();
 
-  useEffect(() => {
-    async function fetchProduct() {
-      if (!id) return;
-      try {
-        const res = await fetch(`/api/products/${id}`);
-        if (!res.ok) throw new Error('Product not found');
-        const data = await res.json();
-        setProduct(data);
-      } catch (error) {
-        console.error('Error fetching product:', error);
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchProduct();
-  }, [id]);
+  if (error || !product) notFound();
 
-  if (loading) return (
-    <div className="flex flex-col items-center justify-center h-[70vh]">
-      <Loader2 className="animate-spin text-[#06392F]" size={40} />
-      <p className="mt-4 text-xs font-bold tracking-[0.2em] text-gray-400 uppercase">Fetching Asham Inventory...</p>
-    </div>
-  );
+  const { data: relatedProducts } = await supabase
+    .from('products')
+    .select('*')
+    .eq('category', product.category)
+    .neq('slug', slug)
+    .limit(4);
 
-  if (!product) return (
-    <div className="flex flex-col items-center justify-center h-[70vh]">
-      <AlertTriangle className="text-[#C75B39]" size={40} />
-      <p className="mt-4 text-lg font-bold text-gray-600">Product not found</p>
-      <Link href="/products" className="mt-4 text-[#06392F] hover:underline">
-        Back to Shop
-      </Link>
-    </div>
-  );
+  // Fallback for images array vs single image_url
+  const images: string[] = product.images && product.images.length > 0 
+    ? product.images 
+    : [product.image_url || '/placeholder.jpg'];
 
-  // Expert Addition: Logic for stock status
   const isStockLow = product.stock > 0 && product.stock < 10;
   const outOfStock = product.stock <= 0;
 
   return (
-    <div className="bg-white">
-      <div className="p-4 mx-auto max-w-7xl md:p-12">
-        {/* Breadcrumbs - Now with Home link */}
-        <nav className="flex items-center gap-2 mb-8 text-xs font-bold tracking-widest text-gray-400 uppercase">
-          <Link href="/" className="hover:text-[#06392F]">Home</Link>
-          <ChevronRight size={12} />
-          <Link href="/products" className="hover:text-[#06392F]">Shop</Link>
-          <ChevronRight size={12} />
-          <span className="text-[#06392F] truncate">{product.name}</span>
+    <div className="min-h-screen bg-white">
+      <QuickViewModal />
+
+      <div className="px-4 py-6 mx-auto max-w-7xl md:py-10">
+        {/* BREADCRUMBS - More subtle */}
+        <nav className="flex items-center gap-2 mb-8 text-[10px] font-bold tracking-widest text-gray-400 uppercase">
+          <Link href="/products" className="hover:text-[#06392F] transition-colors">Shop</Link>
+          <ChevronRight size={10} />
+          <Link href={`/products/category/${product.category}`} className="hover:text-[#06392F] transition-colors">
+            {product.category.replace('-', ' ')}
+          </Link>
+          <ChevronRight size={10} />
+          <span className="text-gray-900 truncate max-w-[150px]">{product.name}</span>
         </nav>
 
-        <div className="grid grid-cols-1 gap-12 lg:grid-cols-12">
+        {/* MAIN GRID */}
+        <div className="grid grid-cols-1 gap-10 lg:grid-cols-12 xl:gap-16">
           
-          {/* LEFT: Image Gallery */}
+          {/* LEFT: IMAGE GALLERY */}
           <div className="lg:col-span-7">
-            <div className="sticky top-24">
-              <div className="relative aspect-[4/5] rounded-3xl overflow-hidden bg-gray-50 border border-gray-100 shadow-sm group">
-                <Image 
-                  src={product.image_url || '/placeholder.jpg'} 
-                  alt={product.name} 
-                  fill 
-                  priority // Expert tip: Load main product image first
-                  className="object-cover transition-transform duration-1000 group-hover:scale-105"
+            <div className="flex flex-col gap-4">
+              {/* Main Image Container */}
+              <div className="relative aspect-square md:aspect-[4/3] rounded-[1.5rem] md:rounded-[2rem] overflow-hidden bg-gray-50 border border-gray-100 shadow-sm">
+                <Image
+                  src={images[0]}
+                  alt={product.name}
+                  fill
+                  priority
+                  className="object-contain p-4 md:p-8" // Better for products with white backgrounds
                 />
-                {/* Sale Badge */}
-                {product.original_price && (
-                  <div className="absolute top-6 left-6 bg-[#C75B39] text-white px-4 py-1 rounded-full text-[10px] font-black tracking-widest uppercase">
-                    Save {Math.round(((product.original_price - product.price) / product.original_price) * 100)}%
-                  </div>
-                )}
               </div>
+
+              {/* THUMBNAILS AT BOTTOM */}
+              {images.length > 1 && (
+                <div className="flex gap-3 pb-2 overflow-x-auto no-scrollbar">
+                  {images.map((img: string, index: number) => (
+                    <button
+                      key={index}
+                      className={`relative flex-shrink-0 w-20 h-20 md:w-24 md:h-24 overflow-hidden rounded-2xl border-2 transition-all ${
+                        index === 0 ? 'border-[#C75B39]' : 'border-gray-100 hover:border-gray-300'
+                      }`}
+                    >
+                      <Image
+                        src={img}
+                        alt={`${product.name} thumb ${index + 1}`}
+                        fill
+                        className="object-cover"
+                      />
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
-          {/* RIGHT: Content & Conversion */}
-          <div className="flex flex-col lg:col-span-5">
-            <div className="mb-6">
-              <div className="flex items-center gap-3 mb-4">
-                <span className="bg-[#06392F]/5 text-[#06392F] px-3 py-1 rounded text-[10px] font-bold uppercase tracking-widest">
-                  {product.category}
+          {/* RIGHT: PRODUCT INFO */}
+          <div className="flex flex-col py-2 lg:col-span-5">
+            <div className="flex items-center gap-3 mb-4">
+              <span className="bg-[#C75B39]/10 text-[#C75B39] px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">
+                {product.category}
+              </span>
+              {isStockLow && (
+                <span className="text-orange-600 text-[10px] font-bold uppercase tracking-wide flex items-center gap-1">
+                  <AlertTriangle size={12} /> Low Stock
                 </span>
-                {/* Expert Tip: Social Proof (Ratings) would go here */}
-              </div>
-              
-              <h1 className="text-4xl md:text-5xl font-black text-[#06392F] mb-4 tracking-tight">
-                {product.name}
-              </h1>
-
-              <div className="flex items-center gap-4 mb-6">
-                <p className="text-3xl font-black text-[#06392F]">{formatCurrency(product.price)}</p>
-                {product.original_price && (
-                  <p className="text-xl font-bold text-gray-300 line-through">
-                    {formatCurrency(product.original_price)}
-                  </p>
-                )}
-              </div>
-
-              {/* Inventory Status (Crucial for e-commerce) */}
-              <div className="mb-8">
-                {outOfStock ? (
-                  <div className="flex items-center gap-2 text-sm font-bold text-red-600">
-                    <AlertTriangle size={16} /> Out of Stock - Restocking Soon
-                  </div>
-                ) : isStockLow ? (
-                  <div className="flex items-center gap-2 text-sm font-bold text-orange-600 animate-pulse">
-                    <AlertTriangle size={16} /> Only {product.stock} left in stock - order soon
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2 text-sm font-bold text-emerald-600">
-                    <CheckCircle2 size={16} /> In Stock - Ready for Dispatch
-                  </div>
-                )}
-              </div>
+              )}
             </div>
 
-            {/* Core Purchase Component */}
-            <div className="p-6 mb-8 border border-gray-100 rounded-3xl bg-gray-50/50">
+            {/* REDUCED FONT SIZE HERE */}
+            <h1 className="text-2xl md:text-3xl lg:text-4xl font-black text-[#06392F] leading-tight tracking-tight mb-4">
+              {product.name}
+            </h1>
+
+            <div className="flex items-center gap-4 mb-6">
+              <span className="text-3xl font-black text-[#06392F]">
+                {formatCurrency(product.price)}
+              </span>
+              {product.original_price && (
+                <span className="text-xl font-bold text-gray-300 line-through">
+                  {formatCurrency(product.original_price)}
+                </span>
+              )}
+            </div>
+
+            {/* DESCRIPTION SHORT PREVIEW */}
+            <p className="mb-8 font-medium leading-relaxed text-gray-500">
+              {product.description?.slice(0, 160)}...
+            </p>
+
+            {/* PURCHASE SECTION */}
+            <div className="p-6 mb-8 bg-white border border-gray-100 shadow-sm rounded-3xl">
               <ProductPurchase product={product} />
             </div>
 
-            {/* Product Tabs / Details */}
-            <div className="space-y-6">
-              <div className="p-4 border-l-4 border-[#06392F] bg-gray-50">
-                <h4 className="flex items-center gap-2 mb-2 text-xs font-black tracking-widest text-[#06392F] uppercase">
-                  <FileText size={14} /> Description
-                </h4>
-                <p className="text-sm leading-relaxed text-gray-600">
-                  {product.description}
-                </p>
+            {/* TRUST BADGES - Cleaned up */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="flex flex-col gap-2 p-4 border bg-gray-50/50 rounded-2xl border-gray-50">
+                <Truck className="text-[#C75B39]" size={18} />
+                <p className="text-[10px] font-black text-[#06392F] uppercase">Fast Site Delivery</p>
+                <p className="text-[9px] text-gray-400 font-bold uppercase">Kenya Wide Coverage</p>
               </div>
-
-              <div className="grid grid-cols-1 gap-4">
-                <div className="flex items-center gap-4 p-4 border border-gray-100 rounded-2xl">
-                  <Truck className="text-[#C75B39]" size={24} />
-                  <div>
-                    <p className="text-sm font-bold text-[#06392F]">Site Delivery</p>
-                    <p className="text-[10px] text-gray-400 font-medium uppercase">3-5 Business Days across Kenya</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-4 p-4 border border-gray-100 rounded-2xl">
-                  <ShieldCheck className="text-[#C75B39]" size={24} />
-                  <div>
-                    <p className="text-sm font-bold text-[#06392F]">Authentic Material</p>
-                    <p className="text-[10px] text-gray-400 font-medium uppercase">Vetted by ASHAM Quality Control</p>
-                  </div>
-                </div>
+              <div className="flex flex-col gap-2 p-4 border bg-gray-50/50 rounded-2xl border-gray-50">
+                <ShieldCheck className="text-[#C75B39]" size={18} />
+                <p className="text-[10px] font-black text-[#06392F] uppercase">Vetted Quality</p>
+                <p className="text-[9px] text-gray-400 font-bold uppercase">Engineer Approved</p>
               </div>
             </div>
           </div>
         </div>
+
+        {/* RELATED PRODUCTS */}
+        {relatedProducts && relatedProducts.length > 0 && (
+          <section className="pt-12 mt-24 border-t border-gray-100">
+            <div className="flex items-end justify-between mb-10">
+              <div>
+                <h2 className="text-2xl font-black text-[#06392F] tracking-tight">Complete Your Order</h2>
+                <p className="mt-1 text-sm font-medium text-gray-400">Frequently bought together with this item</p>
+              </div>
+              <Link
+                href={`/products/category/${product.category}`}
+                className="hidden md:flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-[#C75B39] hover:opacity-80 transition-opacity"
+              >
+                View Category <ChevronRight size={14} />
+              </Link>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4 md:gap-8 lg:grid-cols-4">
+              {relatedProducts.map((relProduct) => (
+                <ProductCard key={relProduct.id} product={relProduct} />
+              ))}
+            </div>
+          </section>
+        )}
       </div>
+
+      {!outOfStock && (
+        <MobileAddToCart product={product} price={formatCurrency(product.price)} />
+      )}
+      <CompareBar />
     </div>
   );
 }

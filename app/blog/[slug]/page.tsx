@@ -99,7 +99,7 @@ export default async function PostPage({ params }: { params: { slug: string } })
              <img 
                src={post.image_url || '/placeholder-blog.jpg'} 
                alt={post.title}
-               className="w-full h-full object-cover transition-transform duration-[3000] hover:scale-105"
+               className="w-full h-full object-cover transition-transform transition-duration-[3000ms] hover:scale-105"
              />
           </div>
         </div>

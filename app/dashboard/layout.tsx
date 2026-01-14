@@ -7,13 +7,15 @@ import { createClient } from '@/lib/supabase/client';
 import { 
   LayoutDashboard, ShoppingBag, User, Settings, 
   HardHat, LogOut, Menu, X, Loader2, Plus, 
-  ChevronRight, Bell
+  ChevronRight, Bell,
+  FileDown
 } from 'lucide-react';
 
 const USER_NAVIGATION = [
   { name: 'Overview', href: '/dashboard', icon: LayoutDashboard },
-  { name: 'My Projects', href: '/dashboard/projects', icon: HardHat },
-  { name: 'Orders', href: '/dashboard/orders', icon: ShoppingBag },
+  { name: 'My Projects', href: '/dashboard/my-projects', icon: HardHat },
+  { name: 'My Orders', href: '/dashboard/my-orders', icon: ShoppingBag },
+  { name: 'Downloads', href: '/dashboard/my-downloads', icon: FileDown },
   { name: 'Profile', href: '/dashboard/user', icon: User },
 ];
 

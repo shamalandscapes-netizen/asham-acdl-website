@@ -5,7 +5,7 @@ import { Toaster } from "react-hot-toast";
 import { useUIStore } from '@/store/ui-store';
 
 // ✅ Global UI Layers
-import { CartDrawer } from '@/components/cart/cart-drawer';
+import CartDrawer from '@/components/cart/cart-drawer';
 import { QuickViewModal } from '@/components/products/quick-view-modal';
 import { SearchOverlay } from '@/components/search/search-overlay';
 import WhatsAppButton from "./WhatsAppButton"; // Ensure this path matches your file structure
@@ -27,7 +27,9 @@ export default function ClientWrapper() {
       {/* Search > QuickView > Cart > WhatsApp (Order for Z-Index) */}
       <SearchOverlay />
       <QuickViewModal />
-      <CartDrawer />
+      <CartDrawer isOpen={false} onClose={function (): void {
+        throw new Error("Function not implemented.");
+      } } />
       
       {/* ✅ Floating Contact Layer */}
       <WhatsAppButton />

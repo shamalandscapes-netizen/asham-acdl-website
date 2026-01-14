@@ -1,178 +1,164 @@
-﻿'use client';
+﻿// app/products/page.tsx
+import Link from 'next/link';
+import {
+  FileText,
+  LayoutTemplate,
+  TreePine,
+  Layers,
+  Hammer,
+  Truck,
+} from 'lucide-react';
 
-import { useEffect, useState, Suspense, useCallback } from 'react';
-import { useSearchParams, useRouter, usePathname } from 'next/navigation';
-import { Search, Loader2, PackageX, Filter, X, LayoutGrid } from 'lucide-react';
-import ProductCard from '@/components/store/ProductCard';
-import TopSales from '@/components/store/TopSales';
+const DIGITAL_PRODUCTS = [
+  {
+    icon: LayoutTemplate,
+    title: 'Architectural Drawings',
+    description:
+      'Professionally designed house plans, floor layouts, elevations, and 3D visualizations — ready for approval and construction.',
+    formats: ['PDF', 'AutoCAD (DWG)', '3D Renders'],
+    href: '/contact',
+  },
+  {
+    icon: FileText,
+    title: 'Bills of Quantities (BOQs)',
+    description:
+      'Accurate cost breakdowns prepared by experienced quantity surveyors to help you budget, plan, and control project costs.',
+    formats: ['Excel', 'PDF'],
+    href: '/contact',
+  },
+  {
+    icon: TreePine,
+    title: 'Landscape Designs',
+    description:
+      'Complete landscape drawings and planting plans for residential and commercial properties, including irrigation layouts.',
+    formats: ['PDF', 'CAD', 'Plant Schedules'],
+    href: '/contact',
+  },
+];
 
-function ProductsContent() {
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-  
-  const [products, setProducts] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  
-  const categoryFilter = searchParams.get('category') || 'all';
-  const queryParam = searchParams.get('search') || '';
-  const [searchTerm, setSearchTerm] = useState(queryParam);
+const FUTURE_PRODUCTS = [
+  {
+    icon: Layers,
+    title: 'Finishing Materials',
+    items: ['Tiles', 'Paints', 'Ceilings', 'Flooring'],
+  },
+  {
+    icon: Hammer,
+    title: 'Building Materials',
+    items: ['Cement', 'Steel', 'Blocks', 'Aggregates'],
+  },
+  {
+    icon: Truck,
+    title: 'Equipment & Tools',
+    items: ['Mixers', 'Scaffolding', 'Power Tools'],
+  },
+];
 
-  const createQueryString = useCallback(
-    (name: string, value: string) => {
-      const params = new URLSearchParams(searchParams.toString());
-      if (value) params.set(name, value);
-      else params.delete(name);
-      return params.toString();
-    },
-    [searchParams]
-  );
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      router.push(`${pathname}?${createQueryString('search', searchTerm)}`, { scroll: false });
-    }, 400);
-    return () => clearTimeout(timer);
-  }, [searchTerm, pathname, router, createQueryString]);
-
-  useEffect(() => {
-    async function fetchProducts() {
-      setLoading(true);
-      try {
-        const res = await fetch(`/api/products?${searchParams.toString()}`);
-        if (res.ok) {
-          const data = await res.json();
-          setProducts(data.map((p: any) => ({ 
-            ...p, 
-            stock: p.stock ?? p.stock_quantity ?? 0 
-          })));
-        }
-      } catch (error) {
-        console.error('Failed to fetch products:', error);
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchProducts();
-  }, [searchParams]);
-
+export default function ProductsPage() {
   return (
-    <div className="min-h-screen bg-white text-[#06392F]">
-      {/* HERO SECTION */}
-      <section className="relative h-[55vh] md:h-[65vh] w-full overflow-hidden bg-[#06392F]">
-        <div className="absolute inset-0 z-0 grayscale opacity-30">
-          <img 
-            src="https://images.unsplash.com/photo-1541888946425-d81bb1930060?q=80&w=2070&auto=format&fit=crop" 
-            alt="Structural construction background"
-            className="object-cover w-full h-full"
-          />
-          <div className="absolute inset-0 opacity-5" style={{ backgroundImage: 'linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)', backgroundSize: '45px 45px' }} />
-        </div>
-        <div className="absolute inset-0 bg-gradient-to-t from-[#06392F] via-[#06392F]/30 to-transparent" />
-
-        <div className="relative z-10 flex flex-col items-start justify-end w-full h-full px-6 pb-20 mx-auto max-w-7xl">
-          <p className="text-[#C75B39] font-black text-xs uppercase tracking-[0.5em] mb-4">
-            Official Asham Material Store
-          </p>
-          <h1 className="text-3xl md:text-[10rem] font-black text-white uppercase tracking-tighter leading-[0.8] mb-12">
-            MASTER <br /> INVENTORY
+    <div className="min-h-screen bg-gray-50">
+      {/* HERO */}
+      <section className="bg-[#06392F] text-white py-24 px-4">
+        <div className="max-w-5xl mx-auto text-center">
+          <h1 className="mb-6 text-4xl font-black md:text-5xl">
+            Digital Construction Products
           </h1>
-          
-          {/* SEARCH BAR WITH ACCESSIBILITY FIXES */}
-          <div className="relative w-full max-w-3xl group">
-            <label htmlFor="inventory-search" className="sr-only">Search inventory</label>
-            <input 
-              id="inventory-search"
-              type="text" 
-              placeholder="SEARCH CATALOG BY MATERIAL, PLAN, OR SPEC..." 
-              className="w-full bg-white/10 border border-white/20 backdrop-blur-lg px-14 py-6 text-white outline-none focus:bg-white focus:text-[#06392F] transition-all uppercase font-bold tracking-widest text-sm rounded-none"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-            <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-white/50 group-focus-within:text-[#06392F]" size={20} aria-hidden="true" />
-            
-            {searchTerm && (
-              <button 
-                type="button" 
-                title="Clear search" // ACCESSIBILITY FIX
-                aria-label="Clear search input" // ACCESSIBILITY FIX
-                onClick={() => setSearchTerm('')} 
-                className="absolute transition-colors -translate-y-1/2 right-5 top-1/2 text-white/50 hover:text-red-500"
+          <p className="max-w-3xl mx-auto text-lg text-gray-200">
+            Instantly accessible professional documents — architectural drawings,
+            BOQs, and landscape designs — prepared by industry experts.
+          </p>
+        </div>
+      </section>
+
+      {/* DIGITAL PRODUCTS */}
+      <section className="max-w-6xl px-4 py-20 mx-auto">
+        <h2 className="mb-12 text-3xl font-black text-center text-gray-800">
+          Our Core Digital Products
+        </h2>
+
+        <div className="grid gap-8 md:grid-cols-3">
+          {DIGITAL_PRODUCTS.map((product) => {
+            const Icon = product.icon;
+            return (
+              <div
+                key={product.title}
+                className="p-8 transition bg-white border border-gray-100 shadow-sm rounded-2xl hover:shadow-xl group"
               >
-                <X size={20} />
-              </button>
-            )}
+                <div className="w-14 h-14 flex items-center justify-center bg-gray-100 rounded-xl mb-6 group-hover:bg-[#06392F] transition">
+                  <Icon className="text-[#06392F] group-hover:text-white" size={28} />
+                </div>
+
+                <h3 className="mb-4 text-xl font-bold text-gray-800">
+                  {product.title}
+                </h3>
+
+                <p className="mb-6 leading-relaxed text-gray-600">
+                  {product.description}
+                </p>
+
+                <div className="mb-6 text-sm text-gray-500">
+                  <strong>Formats:</strong> {product.formats.join(', ')}
+                </div>
+
+                <Link
+                  href={product.href}
+                  className="inline-block text-sm font-bold uppercase tracking-widest text-[#C75B39] hover:underline"
+                >
+                  Request This Product
+                </Link>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* COMING SOON PHYSICAL PRODUCTS */}
+      <section className="px-4 py-20 bg-white border-t">
+        <div className="max-w-6xl mx-auto">
+          <h3 className="mb-10 text-2xl font-black text-center text-gray-800">
+            Marketplace Expansion (Coming Soon)
+          </h3>
+
+          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+            {FUTURE_PRODUCTS.map((item) => {
+              const Icon = item.icon;
+              return (
+                <div
+                  key={item.title}
+                  className="p-6 border border-dashed rounded-2xl bg-gray-50"
+                >
+                  <div className="flex items-center gap-3 mb-4">
+                    <Icon className="text-[#06392F]" />
+                    <h4 className="font-bold text-gray-700">{item.title}</h4>
+                  </div>
+                  <ul className="space-y-1 text-sm text-gray-500">
+                    {item.items.map((i) => (
+                      <li key={i}>• {i}</li>
+                    ))}
+                  </ul>
+                </div>
+              );
+            })}
           </div>
         </div>
       </section>
 
-      <div className="px-6 py-20 mx-auto max-w-7xl">
-        {!queryParam && categoryFilter === 'all' && (
-          <div className="mb-24">
-            <TopSales />
-          </div>
-        )}
-
-        {/* DIRECTORY HEADER */}
-        <div className="border-t-[6px] border-[#06392F] pt-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-8 mb-16">
-          <div className="space-y-2">
-            <div className="flex items-center gap-2 text-[#C75B39]">
-              <LayoutGrid size={14} aria-hidden="true" />
-              <h2 className="text-xs font-black uppercase tracking-[0.4em]">Directory</h2>
-            </div>
-            <h3 className="text-5xl font-black tracking-tighter uppercase md:text-7xl">The Collection</h3>
-            <p className="text-gray-400 font-bold text-[10px] uppercase tracking-widest">
-              {loading ? 'Consulting DB...' : `${products.length} Professional Units Available`}
-            </p>
-          </div>
-          
-          <button 
-            type="button"
-            title="Open category filters" // ACCESSIBILITY FIX
-            aria-label="Filter products by category" // ACCESSIBILITY FIX
-            className="flex items-center gap-3 bg-[#06392F] text-white px-10 py-5 font-black text-[11px] uppercase tracking-[0.2em] hover:bg-[#C75B39] transition-all shadow-xl active:scale-95"
-          >
-            <Filter size={16} aria-hidden="true" /> Filter Catalog
-          </button>
-        </div>
-
-        {/* RESULTS GRID */}
-        {loading ? (
-          <div className="flex flex-col items-center justify-center py-40" aria-live="polite">
-            <Loader2 className="animate-spin text-[#C75B39] mb-4" size={48} />
-            <p className="text-[10px] font-black tracking-[0.3em] text-gray-400 uppercase">Synchronizing Inventory...</p>
-          </div>
-        ) : products.length === 0 ? (
-          <div className="py-32 text-center border-2 border-dashed border-gray-100 rounded-[2rem]">
-            <PackageX className="mx-auto mb-6 text-gray-100" size={100} aria-hidden="true" />
-            <h3 className="text-3xl font-black uppercase text-[#06392F]">Zero Results</h3>
-            <p className="mt-2 mb-10 text-xs font-bold tracking-widest text-gray-400 uppercase">No matches for your inquiry</p>
-            <button 
-              type="button"
-              title="Reset all filters" // ACCESSIBILITY FIX
-              aria-label="Reset all search and category filters" // ACCESSIBILITY FIX
-              onClick={() => {setSearchTerm(''); router.push('/products');}}
-              className="bg-[#C75B39] text-white px-12 py-5 font-black uppercase text-xs tracking-widest hover:bg-[#06392F] transition-all shadow-lg"
-            >
-              Reset Parameters
-            </button>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 gap-12 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {products.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </div>
-        )}
-      </div>
+      {/* CTA */}
+      <section className="bg-[#0A4D40] py-20 px-4 text-center text-white">
+        <h3 className="mb-4 text-3xl font-black">
+          Need a Custom Design or BOQ?
+        </h3>
+        <p className="max-w-2xl mx-auto mb-8 text-gray-300">
+          Our team can prepare tailored architectural drawings, BOQs, and
+          landscape designs specific to your plot, budget, and approvals.
+        </p>
+        <Link
+          href="/contact"
+          className="inline-block bg-[#C75B39] px-8 py-4 rounded-lg font-bold hover:bg-[#b04b2c] transition shadow-lg"
+        >
+          Talk to Our Experts
+        </Link>
+      </section>
     </div>
-  );
-}
-
-export default function ProductsPage() {
-  return (
-    <Suspense fallback={<div className="flex items-center justify-center h-screen bg-white"><Loader2 className="animate-spin text-[#06392F]" size={40} /></div>}>
-      <ProductsContent />
-    </Suspense>
   );
 }

@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
@@ -209,7 +209,7 @@ export default function RegisterPage() {
               href="/" 
               className="flex items-center justify-center gap-2 text-sm text-gray-500 transition-colors hover:text-gray-800"
             >
-              ← Back to Home
+              ? Back to Home
             </Link>
           </div>
         </div>
