@@ -1,33 +1,26 @@
-﻿import { createServerClient, type CookieOptions } from '@supabase/ssr';
-import { cookies } from 'next/headers';
-import { Database } from '@/lib/database.types';
+import { createServerClient } from '@supabase/auth-helpers-nextjs'
+import { cookies } from 'next/headers'
 
-export async function createClient() {
-  const cookieStore = await cookies();
+// Mark as async so we can await cookies()
+export async function createSupabaseServerClient() {
+  const cookieStore = await cookies() // ✅ await it
 
-  return createServerClient<Database>(
+  return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
         get(name: string) {
-          return cookieStore.get(name)?.value;
+          const cookie = cookieStore.get?.(name) ?? null
+          return cookie?.value ?? null
         },
-        set(name: string, value: string, options: CookieOptions) {
-          try {
-            cookieStore.set({ name, value, ...options });
-          } catch (error) {
-            // Handle edge cases where cookies are set in Server Components
-          }
+        set(name: string, value: string, options?: any) {
+          console.warn('Supabase attempted to set a cookie on server component')
         },
-        remove(name: string, options: CookieOptions) {
-          try {
-            cookieStore.set({ name, value: '', ...options });
-          } catch (error) {
-            // Handle edge cases
-          }
+        remove(name: string, options?: any) {
+          console.warn('Supabase attempted to remove a cookie on server component')
         },
       },
     }
-  );
+  )
 }

@@ -1,29 +1,29 @@
-import { createClient } from '@/lib/supabase/server';
-import { NextResponse } from 'next/server';
+import { createSupabaseServerClient as createClient } from '@/lib/supabase/server';
+import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(
-  request: Request,
-  { params }: { params: { id: string } }
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> } // Params is now a Promise in Next.js 16
 ) {
-  // Ensure we have the ID from the URL
-  const productId = params.id;
+  // 1. Await the params to get the ID
+  const { id: productId } = await params;
 
   try {
-    // 1. Initialize Supabase
+    // 2. Initialize Supabase
     const supabase = await createClient();
 
-    // 2. Authentication Check
+    // 3. Authentication Check
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
       return NextResponse.json({ error: 'Log in required' }, { status: 401 });
     }
 
-    // 3. Authorization Check: Verify Purchase
-    // We use 'as any' here to bypass potential table type mismatches during build
+    // 4. Authorization Check: Verify Purchase
+    // Note: Ensure your 'orders' table uses 'customer_id' or 'user_id' consistently
     const { data: orders, error: orderError } = await (supabase
       .from('orders')
       .select('items')
-      .eq('user_id', user.id)
+      .eq('customer_id', user.id) // Changed to customer_id to match your previous route logic
       .in('status', ['paid', 'delivered']) as any);
 
     if (orderError) throw orderError;
@@ -37,35 +37,32 @@ export async function GET(
       return NextResponse.json({ error: 'Forbidden: Product not purchased' }, { status: 403 });
     }
 
-    // 4. Get File Path from Database
-    // ✅ FIX: Casting to 'any' stops the 'file_path does not exist' TypeScript error
+    // 5. Get File Path from Database
     const { data: product, error: productError } = await (supabase
       .from('products')
-      .select('file_path, title')
+      .select('file_path, name') // Changed 'title' to 'name' based on your previous product schema
       .eq('id', productId)
       .single() as any);
 
-    // ✅ Robust Null check
     if (productError || !product || !product.file_path) {
       console.error('Database fetch error:', productError);
       return NextResponse.json({ error: 'Product file record not found' }, { status: 404 });
     }
 
-    // 5. Generate Secure Signed URL
+    // 6. Generate Secure Signed URL (Expires in 10 minutes)
     const { data: signedData, error: signError } = await supabase
       .storage
       .from('product-files')
       .createSignedUrl(product.file_path, 600, {
-        download: true, // Forces "Save As" dialog instead of opening in tab
+        download: true,
       });
 
-    // ✅ Null check for signedData to satisfy TypeScript
     if (signError || !signedData || !signedData.signedUrl) {
       console.error('Supabase Storage Error:', signError);
-      return NextResponse.json({ error: 'Failed to generate secure download link' }, { status: 500 });
+      return NextResponse.json({ error: 'Failed to generate link' }, { status: 500 });
     }
 
-    // 6. Success: Redirect to the secure link
+    // 7. Success: Redirect to the secure link
     return NextResponse.redirect(new URL(signedData.signedUrl));
 
   } catch (error: any) {

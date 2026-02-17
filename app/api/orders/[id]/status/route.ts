@@ -1,14 +1,17 @@
-import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { NextRequest, NextResponse } from 'next/server'
+import { createSupabaseServerClient as createClient } from '@/lib/supabase/server';
 
 export async function GET(
-  _req: Request,
-  { params }: { params: { id: string } }
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> } // FIX: Params is now a Promise
 ) {
+  // 1. Await the dynamic parameters
+  const { id } = await params;
+
   const supabase = await createClient()
 
   /* ---------------------------------
-     1️⃣ AUTH CHECK
+      1️⃣ AUTH CHECK
   ---------------------------------- */
   const {
     data: { user },
@@ -23,10 +26,10 @@ export async function GET(
   }
 
   /* ---------------------------------
-     2️⃣ ROLE CHECK
+      2️⃣ ROLE CHECK
   ---------------------------------- */
   const { data: profile, error: profileError } = await supabase
-    .from('user_profiles')
+    .from('profiles')
     .select('user_type, is_active, is_approved')
     .eq('id', user.id)
     .single()
@@ -53,12 +56,12 @@ export async function GET(
   }
 
   /* ---------------------------------
-     3️⃣ FETCH ORDER STATUS
+      3️⃣ FETCH ORDER STATUS
   ---------------------------------- */
   const { data: order, error: orderError } = await supabase
     .from('orders')
     .select('status')
-    .eq('id', params.id)
+    .eq('id', id) // Use the awaited 'id'
     .single()
 
   if (orderError || !order) {

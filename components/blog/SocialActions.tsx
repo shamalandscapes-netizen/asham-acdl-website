@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Heart, Share2, Check } from 'lucide-react';
-import { createClient } from '@/lib/supabase/client';
+import { createClient } from '@/supabase/client';
 import { toast } from 'react-hot-toast';
 
 export default function SocialActions({ 

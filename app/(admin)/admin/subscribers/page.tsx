@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server';
+import { createSupabaseServerClient as createClient } from '@/lib/supabase/server';
 import { Mail, Download, UserCheck } from 'lucide-react';
 
 export default async function SubscribersPage() {

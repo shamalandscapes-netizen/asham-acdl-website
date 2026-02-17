@@ -10,7 +10,7 @@ import { Product } from '@/types/products';
 interface ExtendedProduct extends Product {
   stock: number;
   original_price?: number;
-  sales_count?: number;
+  sales_count: number | null;
   slug: string; // Ensure this is explicitly handled
 }
 

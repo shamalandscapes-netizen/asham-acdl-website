@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { createClient } from '@/lib/supabase/client';
+import { createClient } from '@/supabase/client';
 import { 
   Receipt, Search, Filter, RefreshCcw, 
   FileText, Download, Loader2, ArrowUpRight, 

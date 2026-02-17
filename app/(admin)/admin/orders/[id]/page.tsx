@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
+import { createClient } from '@/supabase/client';
 import { 
   ArrowLeft, Package, User, Loader2, RefreshCcw, 
   Printer, CreditCard, Phone, MapPin, CheckCircle2, Mail, Send

@@ -1,16 +1,30 @@
-import { createBrowserClient } from '@supabase/ssr';
-import { Database } from '@/lib/supabase/types'; // Ensure this points to where you saved your types
+import { createBrowserClient } from '@supabase/ssr'
 
-/**
- * Creates a Supabase client for use in the Browser (Client Components).
- * Use this in:
- * - useEffect() hooks
- * - Event handlers (onClick, onSubmit)
- * - Real-time subscriptions
- */
-export function createClient() {
-  return createBrowserClient<Database>(
+export const createClient = () => {
+  return createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+        flowType: 'pkce',
+        storage: {
+          getItem: (key: string) => {
+            if (typeof window === 'undefined') return null
+            return window.localStorage.getItem(key)
+          },
+          setItem: (key: string, value: string) => {
+            if (typeof window === 'undefined') return
+            window.localStorage.setItem(key, value)
+          },
+          removeItem: (key: string) => {
+            if (typeof window === 'undefined') return
+            window.localStorage.removeItem(key)
+          }
+        }
+      }
+    }
+  )
 }

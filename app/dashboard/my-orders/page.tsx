@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { createClient } from '@/lib/supabase/client'
+import { createClient } from '@/supabase/client'
 
 // 1. Updated interface to allow null values from the database
 interface Order {

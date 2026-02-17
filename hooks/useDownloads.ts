@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { createClient } from '@/lib/supabase/client';
+import { createClient } from '@/supabase/client';
 import { User } from '@supabase/supabase-js';
 
 export interface DownloadItem {

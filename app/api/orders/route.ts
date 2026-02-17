@@ -1,5 +1,4 @@
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
+import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
 
 // --- TYPES & INTERFACES ---
@@ -22,29 +21,22 @@ interface OrderRequestPayload {
   projectName?: string;
 }
 
+/**
+ * Handle Order Creation
+ * Path: /api/orders
+ */
 export async function POST(request: Request) {
-  const cookieStore = await cookies();
-  
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(name) { return cookieStore.get(name)?.value },
-        set(name, value, options) { cookieStore.set({ name, value, ...options }) },
-        remove(name, options) { cookieStore.set({ name, value: '', ...options }) },
-      },
-    }
-  );
+  // 1. Initialize Supabase with Server-Side Auth (Cookies)
+  const supabase = await createSupabaseServerClient();
 
   try {
-    // 1. Authentication Check
+    // 2. Authentication Check
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
 
-    // 2. Payload Validation
+    // 3. Payload Extraction & Validation
     const body = (await request.json()) as OrderRequestPayload;
     const { customer, items, paymentMethod, projectName } = body;
 
@@ -52,7 +44,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Your manifest is empty' }, { status: 400 });
     }
 
-    // 3. Secure Price Verification (Server-Side)
+    // 4. Secure Price Verification (Fetch directly from DB to prevent client-side tampering)
     const itemIds = items.map((item: CartItem) => item.id);
     const { data: dbProducts, error: dbError } = await supabase
       .from('products')
@@ -63,23 +55,24 @@ export async function POST(request: Request) {
       throw new Error("Could not verify material prices from the database.");
     }
 
-    // 4. Financial Calculations
+    // 5. Financial Calculations
     let rawSubtotal = 0;
     const verifiedLineItems = items.map((item: CartItem) => {
       const product = dbProducts.find((p) => p.id === item.id);
-      if (!product) throw new Error(`Product ${item.id} no longer exists.`);
+      if (!product) throw new Error(`Product ${item.id} is no longer available.`);
       
       const price = parseFloat(product.price.toString());
-      const quantity = Math.max(1, item.quantity); // Ensure at least 1
+      const quantity = Math.max(1, item.quantity); // Prevent zero/negative quantities
       rawSubtotal += price * quantity;
 
       return {
         product_id: product.id,
         quantity: quantity,
-        unit_price: price, // Snapshots the price at purchase time
+        unit_price: price, // Snapshots the price at the moment of purchase
       };
     });
 
+    // Kenyan Tax Calculations (16% VAT)
     const subtotal = Math.round(rawSubtotal * 100) / 100;
     const taxAmount = Math.round((subtotal * 0.16) * 100) / 100;
     const totalAmount = subtotal + taxAmount;
@@ -88,7 +81,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Invalid calculation. Subtotal is zero.' }, { status: 400 });
     }
 
-    // 5. Insert Main Order
+    // 6. Insert Main Order Record
     const { data: order, error: orderError } = await supabase
       .from('orders')
       .insert({
@@ -107,7 +100,7 @@ export async function POST(request: Request) {
 
     if (orderError) throw orderError;
 
-    // 6. Insert Line Items (order_items table)
+    // 7. Insert Line Items (Relinked to the generated Order ID)
     const orderItemsPayload = verifiedLineItems.map((item) => ({
       ...item,
       order_id: order.id,
@@ -118,10 +111,11 @@ export async function POST(request: Request) {
       .insert(orderItemsPayload);
 
     if (itemsError) {
+      // We log this but don't necessarily crash the whole response since the order exists
       console.error("Non-fatal: order_items link failed", itemsError);
     }
 
-    // 7. Success Response
+    // 8. Final Success Response
     return NextResponse.json({ 
       success: true,
       orderId: order.id, 
@@ -132,6 +126,9 @@ export async function POST(request: Request) {
 
   } catch (err: any) {
     console.error("Order API Crash:", err.message);
-    return NextResponse.json({ error: err.message || 'Internal Server Error' }, { status: 500 });
+    return NextResponse.json(
+      { error: err.message || 'Internal Server Error' }, 
+      { status: 500 }
+    );
   }
 }

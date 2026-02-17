@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { createClient } from '@/lib/supabase/client';
+import { createClient } from '@/supabase/client';
 import { UploadCloud, FileText, CheckCircle, AlertCircle, Loader2, DraftingCompass } from 'lucide-react';
 
 interface DigitalProduct {

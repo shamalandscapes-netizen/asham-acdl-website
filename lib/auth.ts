@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/client';
+import { createClient } from '@/supabase/client';
 
 type UserProfile = {
   id: string;
@@ -17,7 +17,7 @@ export async function getCurrentUserRole() {
   if (!user) return null;
 
   const { data, error } = await supabase
-    .from('user_profiles')
+    .from('profiles')
     .select('user_type, is_active, is_approved')
     .eq('id', user.id)
     .single<UserProfile>();

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { createClient } from '@/lib/supabase/client';
+import { createClient } from '@/supabase/client';
 import { 
   FileText, Search, ExternalLink, Clock, CheckCircle, 
   MoreHorizontal, ArrowUpRight, Loader2, X, Trash2,

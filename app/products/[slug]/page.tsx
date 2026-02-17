@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/utils/supabase/server';
+import { createSupabaseServerClient as createClient } from '@/lib/supabase/server';
 import { notFound } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -18,14 +18,19 @@ import { CompareBar } from '@/components/products/compare-bar';
 import { QuickViewModal } from '@/components/products/quick-view-modal';
 import { MobileAddToCart } from '@/components/products/mobile-add-to-cart';
 
+/**
+ * app/products/[slug]/page.tsx
+ */
 export default async function ProductDetailPage({
   params,
 }: {
-  params: { slug: string };
+  params: Promise<{ slug: string }>; // FIX: params is now a Promise in Next.js 16
 }) {
-  const supabase = createClient();
-  const { slug } = params;
+  // 1. Await params and initialize Supabase
+  const { slug } = await params;
+  const supabase = await createClient(); // Ensure the helper is awaited
 
+  // 2. Fetch primary product data
   const { data: product, error } = await supabase
     .from('products')
     .select('*')
@@ -34,6 +39,7 @@ export default async function ProductDetailPage({
 
   if (error || !product) notFound();
 
+  // 3. Fetch related products
   const { data: relatedProducts } = await supabase
     .from('products')
     .select('*')
@@ -54,7 +60,7 @@ export default async function ProductDetailPage({
       <QuickViewModal />
 
       <div className="px-4 py-6 mx-auto max-w-7xl md:py-10">
-        {/* BREADCRUMBS - More subtle */}
+        {/* BREADCRUMBS */}
         <nav className="flex items-center gap-2 mb-8 text-[10px] font-bold tracking-widest text-gray-400 uppercase">
           <Link href="/products" className="hover:text-[#06392F] transition-colors">Shop</Link>
           <ChevronRight size={10} />
@@ -71,18 +77,16 @@ export default async function ProductDetailPage({
           {/* LEFT: IMAGE GALLERY */}
           <div className="lg:col-span-7">
             <div className="flex flex-col gap-4">
-              {/* Main Image Container */}
               <div className="relative aspect-square md:aspect-[4/3] rounded-[1.5rem] md:rounded-[2rem] overflow-hidden bg-gray-50 border border-gray-100 shadow-sm">
                 <Image
                   src={images[0]}
                   alt={product.name}
                   fill
                   priority
-                  className="object-contain p-4 md:p-8" // Better for products with white backgrounds
+                  className="object-contain p-4 md:p-8"
                 />
               </div>
 
-              {/* THUMBNAILS AT BOTTOM */}
               {images.length > 1 && (
                 <div className="flex gap-3 pb-2 overflow-x-auto no-scrollbar">
                   {images.map((img: string, index: number) => (
@@ -118,7 +122,6 @@ export default async function ProductDetailPage({
               )}
             </div>
 
-            {/* REDUCED FONT SIZE HERE */}
             <h1 className="text-2xl md:text-3xl lg:text-4xl font-black text-[#06392F] leading-tight tracking-tight mb-4">
               {product.name}
             </h1>
@@ -134,17 +137,14 @@ export default async function ProductDetailPage({
               )}
             </div>
 
-            {/* DESCRIPTION SHORT PREVIEW */}
             <p className="mb-8 font-medium leading-relaxed text-gray-500">
               {product.description?.slice(0, 160)}...
             </p>
 
-            {/* PURCHASE SECTION */}
             <div className="p-6 mb-8 bg-white border border-gray-100 shadow-sm rounded-3xl">
               <ProductPurchase product={product} />
             </div>
 
-            {/* TRUST BADGES - Cleaned up */}
             <div className="grid grid-cols-2 gap-3">
               <div className="flex flex-col gap-2 p-4 border bg-gray-50/50 rounded-2xl border-gray-50">
                 <Truck className="text-[#C75B39]" size={18} />

@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation'; // Added useRouter
-import { createClient } from '@/lib/supabase/client'; // Import your supabase client
+import { createClient } from '@/supabase/client'; // Import your supabase client
 import { 
   LayoutDashboard, Package, Calculator, FileText, 
   ShoppingCart, Users, Settings, Menu, X, 
@@ -47,6 +47,12 @@ export default function AdminUIWrapper({ children, role, userName }: Props) {
     { 
       name: 'Inventory & Plans', 
       href: '/admin/products', 
+      icon: Package, 
+      allowedRoles: ['super_admin', 'admin', 'it_admin', 'accounts', 'employee'] 
+    },
+    { 
+      name: 'Inventory Categories', 
+      href: '/admin/product/categories', 
       icon: Package, 
       allowedRoles: ['super_admin', 'admin', 'it_admin', 'accounts', 'employee'] 
     },

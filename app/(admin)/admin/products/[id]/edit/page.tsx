@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
+import { createClient } from '@/supabase/client';
 import { 
   ArrowLeft, Upload, Save, FileText, 
   Loader2, Trash2, ExternalLink 

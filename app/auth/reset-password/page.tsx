@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
+import { createClient } from '@/supabase/client';
 import { Lock, AlertCircle, ShieldCheck, Loader2, Eye, EyeOff } from 'lucide-react';
 import Button from '@/components/ui/Button';
 

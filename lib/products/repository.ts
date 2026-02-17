@@ -16,7 +16,7 @@ export class ProductRepository {
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       {
         cookies: {
-          get: (name: string) => cookieStore.get(name)?.value,
+          get: async (name: string) => (await cookieStore).get(name)?.value,
         },
       }
     );

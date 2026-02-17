@@ -1,9 +1,9 @@
 ﻿'use client';
 
-import { ButtonHTMLAttributes, forwardRef } from 'react';
+import * as React from 'react'; // Change 1: More robust import
 import { Loader2 } from 'lucide-react';
 
-interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger';
   size?: 'sm' | 'md' | 'lg';
   isLoading?: boolean;
@@ -11,7 +11,8 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   rightIcon?: React.ReactNode;
 }
 
-const Button = forwardRef<HTMLButtonElement, ButtonProps>(
+// Change 2: Explicitly define the component as a constant first
+const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ 
     className = '', 
     variant = 'primary', 
@@ -24,10 +25,8 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     ...props 
   }, ref) => {
 
-    // 1. Base Styles
-    const baseStyles = "inline-flex items-center justify-center rounded-lg font-bold transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-60 disabled:cursor-not-allowed";
+    const baseStyles = "inline-flex items-center justify-center rounded-lg font-bold transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-60 disabled:cursor-not-allowed active:scale-[0.98]";
 
-    // 2. Variants
     const variants = {
       primary: "bg-[#06392F] text-white hover:bg-[#0A4D40] focus:ring-[#06392F]",
       secondary: "bg-[#C75B39] text-white hover:bg-[#b04b2c] focus:ring-[#C75B39]",
@@ -36,7 +35,6 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       danger: "bg-red-600 text-white hover:bg-red-700 focus:ring-red-600",
     };
 
-    // 3. Sizes
     const sizes = {
       sm: "px-3 py-1.5 text-xs",
       md: "px-5 py-2.5 text-sm",
@@ -47,12 +45,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       <button
         ref={ref}
         disabled={disabled || isLoading}
-        className={`
-          ${baseStyles} 
-          ${variants[variant]} 
-          ${sizes[size]} 
-          ${className}
-        `}
+        className={`${baseStyles} ${variants[variant]} ${sizes[size]} ${className}`}
         {...props}
       >
         {isLoading ? (
@@ -62,9 +55,9 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
           </>
         ) : (
           <>
-            {leftIcon && <span className="mr-2">{leftIcon}</span>}
+            {leftIcon && <span className="inline-flex mr-2">{leftIcon}</span>}
             {children}
-            {rightIcon && <span className="ml-2">{rightIcon}</span>}
+            {rightIcon && <span className="inline-flex ml-2">{rightIcon}</span>}
           </>
         )}
       </button>

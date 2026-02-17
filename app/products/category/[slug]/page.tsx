@@ -1,7 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
-import { Database } from "@/lib/database.types"; 
+import type { Database } from '@/types/supabase'
 
 export default async function CategoryPage({ params }: { params: { slug: string } }) {
   const cookieStore = cookies();
@@ -9,13 +9,13 @@ export default async function CategoryPage({ params }: { params: { slug: string 
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
-      cookies: { get(name: string) { return cookieStore.get(name)?.value } },
+      cookies: { async get(name: string) { return (await cookieStore).get(name)?.value } },
     }
   );
 
   // 1. Fetch Category
   const { data: category, error: catError } = await supabase
-    .from("product_categories")
+    .from("products")
     .select("id, name")
     .eq("slug", params.slug)
     .single();
@@ -29,7 +29,7 @@ export default async function CategoryPage({ params }: { params: { slug: string 
   // 2. Fetch Products
   const { data: products, error: prodError } = await supabase
     .from("products")
-    .select("id, name, price, image_url, is_in_stock, stock")
+    .select("id, name, price, image_url")
     .eq("category_id", category.id);
 
   if (prodError) {

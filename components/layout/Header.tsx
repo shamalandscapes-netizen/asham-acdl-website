@@ -10,7 +10,7 @@ import {
   User, 
   ChevronDown 
 } from 'lucide-react';
-import { createClient } from '@/lib/supabase/client';
+import { createClient } from '@/supabase/client';
 
 // Navigation Links Configuration
 const NAV_LINKS = [

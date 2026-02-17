@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { createClient } from '@/lib/supabase/client';
+import { createClient } from '@/supabase/client';
 import { Loader2, Construction, ArrowRight, Plus, MapPin } from 'lucide-react';
 import Link from 'next/link';
 

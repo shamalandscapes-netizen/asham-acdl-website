@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { Database } from '@/lib/supabase/types'; // Adjust path if your types are in lib/supabase/types.ts
+import { Database } from '@/types/supabase'; // Adjust path if your types are in lib/supabase/types.ts
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;

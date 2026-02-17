@@ -5,7 +5,7 @@ import {
   TrendingUp, Wallet, Receipt, AlertCircle, 
   BarChart3, Loader2, FileText, Download
 } from 'lucide-react';
-import { createClient } from '@/lib/supabase/client';
+import { createClient } from '@/supabase/client';
 
 export default function AccountantDashboard() {
   const [loading, setLoading] = useState(true);
@@ -69,10 +69,10 @@ export default function AccountantDashboard() {
   );
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-700 pb-20">
+    <div className="pb-20 space-y-8 duration-700 animate-in fade-in">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-black text-gray-900 italic uppercase tracking-tighter">Financial Ledger</h1>
+          <h1 className="text-3xl italic font-black tracking-tighter text-gray-900 uppercase">Financial Ledger</h1>
           <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Revenue Reporting & Asset tracking</p>
         </div>
         <button 
@@ -85,41 +85,41 @@ export default function AccountantDashboard() {
       </div>
 
       {/* --- REVENUE CARDS --- */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
         <div className="bg-[#06392F] p-8 rounded-[2.5rem] text-white shadow-xl relative overflow-hidden group">
           <div className="relative z-10">
             <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-50 mb-2">Realized Revenue</p>
-            <p className="text-3xl font-black italic">KES {finStats.totalSettled.toLocaleString()}</p>
+            <p className="text-3xl italic font-black">KES {finStats.totalSettled.toLocaleString()}</p>
           </div>
           <TrendingUp className="absolute right-[-10px] bottom-[-10px] text-white/5 group-hover:scale-110 transition-transform" size={120} />
         </div>
 
         <div className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm flex items-center gap-6">
-          <div className="w-14 h-14 bg-amber-50 rounded-2xl flex items-center justify-center text-amber-600">
+          <div className="flex items-center justify-center w-14 h-14 bg-amber-50 rounded-2xl text-amber-600">
             <AlertCircle size={28} />
           </div>
           <div>
             <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Pending Sync</p>
-            <p className="text-2xl font-black text-gray-900 italic tracking-tight">KES {finStats.totalPending.toLocaleString()}</p>
+            <p className="text-2xl italic font-black tracking-tight text-gray-900">KES {finStats.totalPending.toLocaleString()}</p>
           </div>
         </div>
 
         <div className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm flex items-center gap-6">
-          <div className="w-14 h-14 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600">
+          <div className="flex items-center justify-center text-blue-600 w-14 h-14 bg-blue-50 rounded-2xl">
             <Receipt size={28} />
           </div>
           <div>
             <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Global Invoices</p>
-            <p className="text-2xl font-black text-gray-900 italic tracking-tight">{finStats.recentTransactions.length} Items</p>
+            <p className="text-2xl italic font-black tracking-tight text-gray-900">{finStats.recentTransactions.length} Items</p>
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
         {/* --- CATEGORY PERFORMANCE --- */}
         <div className="lg:col-span-7 bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm">
           <div className="flex items-center justify-between mb-8">
-            <h3 className="text-xs font-black uppercase tracking-widest text-gray-900 flex items-center gap-2">
+            <h3 className="flex items-center gap-2 text-xs font-black tracking-widest text-gray-900 uppercase">
               <BarChart3 size={16} className="text-[#C75B39]" /> Revenue Allocation
             </h3>
           </div>
@@ -131,7 +131,7 @@ export default function AccountantDashboard() {
                     <span className="text-gray-500">{cat}</span>
                     <span className="text-gray-900">KES {val.toLocaleString()}</span>
                   </div>
-                  <div className="h-3 w-full bg-gray-50 rounded-full overflow-hidden">
+                  <div className="w-full h-3 overflow-hidden rounded-full bg-gray-50">
                     <div 
                       className="h-full bg-[#06392F] rounded-full group-hover:bg-[#C75B39] transition-colors" 
                       style={{ width: `${(val / (finStats.totalSettled + finStats.totalPending || 1)) * 100}%` }}
@@ -140,19 +140,19 @@ export default function AccountantDashboard() {
                 </div>
               ))
             ) : (
-              <p className="text-xs text-gray-400 italic">No category data available yet.</p>
+              <p className="text-xs italic text-gray-400">No category data available yet.</p>
             )}
           </div>
         </div>
 
         {/* --- RECENT ACTIVITY --- */}
         <div className="lg:col-span-5 bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm">
-          <h3 className="text-xs font-black uppercase tracking-widest text-gray-900 mb-6 flex items-center gap-2">
+          <h3 className="flex items-center gap-2 mb-6 text-xs font-black tracking-widest text-gray-900 uppercase">
             <FileText size={16} className="text-[#C75B39]" /> Recent Ledger
           </h3>
           <div className="space-y-3">
             {finStats.recentTransactions.map((t) => (
-              <div key={t.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl hover:bg-gray-100 transition-colors">
+              <div key={t.id} className="flex items-center justify-between p-4 transition-colors bg-gray-50 rounded-2xl hover:bg-gray-100">
                 <div className="max-w-[150px]">
                   <p className="text-xs font-bold text-gray-900 truncate">{t.products?.name || 'Project Item'}</p>
                   <p className="text-[10px] text-gray-400 uppercase font-black tracking-tighter">

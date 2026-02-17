@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
+import { createClient } from '@/supabase/client'
 
 export default function OrderDetail({ params }: { params: { id: string } }) {
   const supabase = createClient()

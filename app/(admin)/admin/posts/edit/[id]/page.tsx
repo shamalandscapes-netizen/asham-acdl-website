@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
-import { createClient } from '@/lib/supabase/client';
+import { createClient } from '@/supabase/client';
 import { useRouter } from 'next/navigation';
 import { uploadImage } from '@/lib/supabase/storage';
 import { toast } from 'react-hot-toast';

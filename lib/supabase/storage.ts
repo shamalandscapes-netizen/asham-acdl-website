@@ -1,25 +1,22 @@
-import { createClient } from '@/lib/supabase/client';
+// lib/supabase/storage.ts
+import { createClient } from '@/supabase/client'; // Adjust path if needed
 
-export async function uploadImage(file: File, bucket: string) {
+export const uploadImage = async (file: File, bucket: string = 'blog-images') => {
   const supabase = createClient();
-  
-  // Create a unique file name to avoid overwriting
   const fileExt = file.name.split('.').pop();
   const fileName = `${Math.random()}.${fileExt}`;
   const filePath = `${fileName}`;
 
-  const { data, error } = await supabase.storage
+  const { error, data } = await supabase.storage
     .from(bucket)
     .upload(filePath, file);
 
-  if (error) {
-    throw error;
-  }
-
-  // Return the public URL
+  if (error) throw error;
+  
+  // Get public URL
   const { data: { publicUrl } } = supabase.storage
     .from(bucket)
     .getPublicUrl(filePath);
 
   return publicUrl;
-}
+};

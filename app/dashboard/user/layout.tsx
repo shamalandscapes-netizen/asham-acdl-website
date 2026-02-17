@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { createClient } from '@/lib/supabase/client';
+import { createClient } from '@/supabase/client';
 import { toast } from 'react-hot-toast';
 import { 
   Lock, Bell, ShieldCheck, ShieldAlert, Loader2, 
@@ -37,9 +37,9 @@ export default function EnhancedSettingsPage() {
   };
 
   return (
-    <div className="max-w-5xl mx-auto space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-1000">
+    <div className="max-w-5xl mx-auto space-y-12 duration-1000 animate-in fade-in slide-in-from-bottom-4">
       {/* Institutional Header */}
-      <div className="flex flex-col gap-4 border-b border-gray-100 pb-10">
+      <div className="flex flex-col gap-4 pb-10 border-b border-gray-100">
         <div className="flex items-center gap-3">
           <div className="p-3 bg-[#06392F] rounded-2xl">
             <ShieldCheck className="text-[#C75B39]" size={24} />
@@ -49,14 +49,14 @@ export default function EnhancedSettingsPage() {
         <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] ml-2">Secure Access Management & Encryption Protocols</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+      <div className="grid grid-cols-1 gap-10 lg:grid-cols-3">
         
         {/* Left Column: Account Protection */}
-        <div className="lg:col-span-2 space-y-8">
+        <div className="space-y-8 lg:col-span-2">
           
           {/* Credential Card */}
           <section className="bg-white border border-gray-100 rounded-[3rem] p-10 shadow-2xl shadow-gray-200/40 relative overflow-hidden group">
-            <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:scale-110 transition-transform">
+            <div className="absolute top-0 right-0 p-8 transition-transform opacity-5 group-hover:scale-110">
               <Key size={80} className="text-[#06392F]" />
             </div>
 
@@ -66,9 +66,9 @@ export default function EnhancedSettingsPage() {
                 <span className="px-3 py-1 bg-green-50 text-green-600 rounded-full text-[8px] font-black uppercase tracking-tighter border border-green-100">Active Session</span>
               </div>
 
-              <div className="p-6 bg-gray-50 rounded-3xl flex items-center justify-between border border-gray-100">
+              <div className="flex items-center justify-between p-6 border border-gray-100 bg-gray-50 rounded-3xl">
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-sm">
+                  <div className="flex items-center justify-center w-12 h-12 bg-white shadow-sm rounded-2xl">
                     <Mail className="text-gray-400" size={20} />
                   </div>
                   <div>
@@ -78,8 +78,8 @@ export default function EnhancedSettingsPage() {
                 </div>
               </div>
 
-              <div className="space-y-4 pt-4">
-                <div className="flex items-start gap-4 p-4 rounded-2xl bg-orange-50/50 border border-orange-100">
+              <div className="pt-4 space-y-4">
+                <div className="flex items-start gap-4 p-4 border border-orange-100 rounded-2xl bg-orange-50/50">
                   <ShieldAlert className="text-[#C75B39] shrink-0" size={18} />
                   <p className="text-[10px] text-orange-800 font-medium leading-relaxed">
                     Initiating a password reset will invalidate temporary tokens. Ensure your email access is secured with 2FA.
@@ -108,7 +108,7 @@ export default function EnhancedSettingsPage() {
             </div>
             
             <div className="space-y-4">
-              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100">
+              <div className="flex items-center justify-between p-4 border border-gray-100 bg-gray-50 rounded-2xl">
                 <div className="flex items-center gap-4">
                    <Monitor className="text-[#06392F]" size={18} />
                    <div>
@@ -126,7 +126,7 @@ export default function EnhancedSettingsPage() {
         <div className="space-y-8">
           {/* Preferences */}
           <section className="bg-white border border-gray-100 rounded-[3rem] p-8 shadow-xl space-y-8">
-             <div className="flex items-center gap-4 border-b border-gray-50 pb-6">
+             <div className="flex items-center gap-4 pb-6 border-b border-gray-50">
                 <Bell className="text-[#C75B39]" size={18} />
                 <h3 className="text-xs font-black text-[#06392F] uppercase tracking-widest">Alerts</h3>
              </div>
@@ -150,7 +150,7 @@ export default function EnhancedSettingsPage() {
           <section className="bg-red-50/30 border border-red-100 rounded-[3rem] p-8 space-y-6">
              <div className="flex items-center gap-4">
                 <Trash2 className="text-red-600" size={18} />
-                <h3 className="text-xs font-black text-red-900 uppercase tracking-widest">Danger Zone</h3>
+                <h3 className="text-xs font-black tracking-widest text-red-900 uppercase">Danger Zone</h3>
              </div>
              <p className="text-[9px] text-red-700 font-bold uppercase tracking-tight leading-normal">
                Permanently purge your identity and asset records from the Asham repository.

@@ -1,6 +1,6 @@
 ﻿'use client';
 
-import { createClient } from '@/lib/supabase/client';
+import { createClient } from '@/supabase/client';
 import { User, Session } from '@supabase/supabase-js';
 
 // Define a type for the data returned by this function

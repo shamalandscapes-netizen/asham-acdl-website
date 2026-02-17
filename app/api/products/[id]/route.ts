@@ -1,33 +1,20 @@
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
-import { NextResponse } from 'next/server';
+import { createSupabaseServerClient as createClient } from '@/lib/supabase/server';
+import { NextRequest, NextResponse } from 'next/server';
 
-// --- Helper: create Supabase Client ---
-async function getSupabase() {
-  const cookieStore = await cookies();
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(name) {
-          return cookieStore.get(name)?.value;
-        },
-      },
-    }
-  );
-}
+/**
+ * app/api/products/[id]/route.ts
+ */
 
 // --- GET: Fetch Single Product ---
 export async function GET(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> } // Params is a Promise in Next.js 15
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const supabase = await getSupabase();
-  const { id } = await params; // Must await params
+  const supabase = await createClient();
+  const { id } = await params;
   const productId = id.trim();
 
-  // Basic UUID validation to prevent database syntax errors
+  // Basic UUID validation
   const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   if (!uuidRegex.test(productId)) {
     return NextResponse.json({ error: 'Invalid product ID format' }, { status: 400 });
@@ -40,7 +27,6 @@ export async function GET(
     .single();
 
   if (error || !data) {
-    console.error('Supabase fetch error:', error?.message);
     return NextResponse.json({ error: 'Product not found' }, { status: 404 });
   }
 
@@ -49,10 +35,10 @@ export async function GET(
 
 // --- PATCH: Update Product (Admin Only) ---
 export async function PATCH(
-  request: Request,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const supabase = await getSupabase();
+  const supabase = await createClient();
   const { id } = await params;
   const productId = id.trim();
 
@@ -60,19 +46,19 @@ export async function PATCH(
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
+    // Note: Ensuring we query the correct table 'profiles' (or 'users' per your schema)
     const { data: profile } = await supabase
-      .from('users')
-      .select('role')
+      .from('profiles')
+      .select('user_type')
       .eq('id', user.id)
       .single();
 
-    if (!['super_admin', 'staff', 'it'].includes(profile?.role)) {
+    const allowedRoles = ['super_admin', 'admin', 'staff', 'it'];
+    if (!profile || !allowedRoles.includes(profile.user_type)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     const body = await request.json();
-    
-    // Ensure we don't try to update the ID itself
     const { id: _, ...updateData } = body;
 
     const { data, error } = await supabase
@@ -93,10 +79,10 @@ export async function PATCH(
 
 // --- DELETE: Remove Product (Super Admin Only) ---
 export async function DELETE(
-  request: Request,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const supabase = await getSupabase();
+  const supabase = await createClient();
   const { id } = await params;
   const productId = id.trim();
 
@@ -105,12 +91,12 @@ export async function DELETE(
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const { data: profile } = await supabase
-      .from('users')
-      .select('role')
+      .from('profiles')
+      .select('user_type')
       .eq('id', user.id)
       .single();
 
-    if (profile?.role !== 'super_admin') {
+    if (profile?.user_type !== 'super_admin') {
       return NextResponse.json(
         { error: 'Forbidden: Only Super Admin can delete' },
         { status: 403 }

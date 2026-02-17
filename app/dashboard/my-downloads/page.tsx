@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { createClient } from '@/lib/supabase/client';
+import { createClient } from '@/supabase/client';
 import { Download, FileText, Loader2, AlertCircle, ShoppingBag } from 'lucide-react';
 import Link from 'next/link';
 
@@ -120,7 +120,7 @@ export default function LibraryPage() {
           {items.map((item) => (
             <div key={`${item.id}-${item.order_id}`} className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm flex flex-col md:flex-row justify-between items-center gap-4 hover:border-[#C75B39] transition-all">
               <div className="flex items-start w-full gap-4 md:w-auto">
-                <div className="p-4 text-blue-600 bg-blue-50 rounded-xl hidden md:block">
+                <div className="hidden p-4 text-blue-600 bg-blue-50 rounded-xl md:block">
                   <FileText size={28} />
                 </div>
                 <div>

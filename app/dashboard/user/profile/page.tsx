@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
+import { createClient } from '@/supabase/client';
 import { toast } from 'react-hot-toast';
 import { 
   User, Phone, MapPin, Save, Loader2, ArrowLeft, Mail, ShieldCheck, Camera 
@@ -35,9 +35,9 @@ export default function UserProfilePage() {
         return;
       }
 
-      // FIX: Cast supabase as any to handle custom user_profiles table
+  
       const { data: profile } = await (supabase as any)
-        .from('user_profiles')
+        .from('profiles')
         .select('*')
         .eq('id', user.id)
         .single();
@@ -94,7 +94,7 @@ export default function UserProfilePage() {
     try {
       // FIX: Cast supabase as any to bypass the 'never' type on upsert values
       const { error } = await (supabase as any)
-        .from('user_profiles')
+        .from('profiles')
         .upsert({
           id: formData.id,
           full_name: formData.full_name,

@@ -1,13 +1,16 @@
-import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { NextRequest, NextResponse } from 'next/server'
+import { createSupabaseServerClient as createClient } from '@/lib/supabase/server';
 import { generateReceipt } from '@/lib/pdf'
 
 export const runtime = 'nodejs' // REQUIRED for pdfkit
 
 export async function GET(
-  _req: Request,
-  { params }: { params: { id: string } }
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> } // FIX: Params is now a Promise
 ) {
+  // 1. Await the dynamic parameters
+  const { id } = await params;
+  
   const supabase = await createClient()
 
   /* -----------------------------------------
@@ -24,7 +27,7 @@ export async function GET(
       shipping_address,
       created_at
     `)
-    .eq('id', params.id)
+    .eq('id', id)
     .single()
 
   if (orderError || !order) {
@@ -41,7 +44,7 @@ export async function GET(
       quantity,
       unit_price
     `)
-    .eq('order_id', params.id)
+    .eq('order_id', id)
 
   if (itemsError) {
     return new NextResponse('Failed to load order items', { status: 500 })
@@ -58,20 +61,18 @@ export async function GET(
     })) ?? []
 
   /* -----------------------------------------
-   * 4️⃣ Generate PDF (FIX: Added 'await')
+   * 4️⃣ Generate PDF
    * ----------------------------------------- */
-  // We await the promise returned by generateReceipt
   const pdfBuffer = await generateReceipt({
     id: order.id,
     order_number: order.order_number ?? undefined,
-    customer_name: 'Customer', // 🔒 safe fallback
+    customer_name: 'Customer', 
     customer_phone: undefined,
     delivery_address: order.shipping_address
       ? typeof order.shipping_address === 'string' 
         ? order.shipping_address 
         : JSON.stringify(order.shipping_address)
       : undefined,
-    // Cast status to any to match the restricted union type in generateOrderPDF
     status: (order.status as any) || 'pending',
     payment_method: order.payment_method ?? undefined,
     total_amount: Number(order.total_amount),
@@ -80,9 +81,8 @@ export async function GET(
   })
 
   /* -----------------------------------------
-   * 5️⃣ Return PDF (FIX: Safe Uint8Array casting)
+   * 5️⃣ Return PDF (Safe Uint8Array casting)
    * ----------------------------------------- */
-  // pdfBuffer is a Node.js Buffer, which is cast to unknown then ArrayBuffer for the Web API
   const pdfUint8Array = new Uint8Array(pdfBuffer as unknown as ArrayBuffer);
 
   return new NextResponse(pdfUint8Array, {

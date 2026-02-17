@@ -5,7 +5,7 @@ import {
   Users, ShieldCheck, Briefcase, Key, 
   UserCircle, Loader2, Search, Mail 
 } from 'lucide-react';
-import { createClient } from '@/lib/supabase/client';
+import { createClient } from '@/supabase/client';
 
 const ROLES = ['customer', 'staff', 'accountant', 'it_admin', 'admin'];
 
@@ -19,7 +19,7 @@ export default function TeamPage() {
     setLoading(true);
     // FIX: Cast as any to bypass potential 'never' type result
     const { data, error } = await (supabase as any)
-      .from('user_profiles')
+      .from('profiles')
       .select('*')
       .order('full_name', { ascending: true });
 
@@ -33,7 +33,7 @@ export default function TeamPage() {
     setUpdatingId(userId);
     // FIX: Cast supabase as any to allow updating a table not in the TS schema
     const { error } = await (supabase as any)
-      .from('user_profiles')
+      .from('profiles')
       .update({ role: newRole })
       .eq('id', userId);
 

@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
+import { createClient } from '@/supabase/client';
 import { 
   LayoutDashboard, ShoppingBag, User, Settings, 
   HardHat, LogOut, Menu, X, Loader2, Plus, 
@@ -38,7 +38,7 @@ export default function UserDashboardLayout({ children }: { children: React.Reac
 
       // FIX: Cast as any to bypass the 'never' type restriction
       const { data } = await (supabase as any)
-        .from('user_profiles')
+        .from('profiles')
         .select('full_name')
         .eq('id', user.id)
         .single();

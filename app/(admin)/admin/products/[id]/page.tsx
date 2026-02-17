@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
+import { createClient } from '@/supabase/client';
 import { ArrowLeft, Loader2, ImageIcon, Save, Plus, X, FileText, ExternalLink } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 

@@ -1,15 +1,16 @@
-import { createClient } from '@/lib/utils/supabase/server';
-import { NextResponse } from 'next/server';
+import { createSupabaseServerClient as createClient } from '@/lib/supabase/server';
+import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(
-  request: Request,
-  { params }: { params: { slug: string } }
+  request: NextRequest,
+  { params }: { params: Promise<{ slug: string }> } // FIX: params is now a Promise
 ) {
-  const { slug } = params;
-  const supabase = createClient();
+  // 1. Await the params to get the slug
+  const { slug } = await params;
+  const supabase = await createClient(); // Ensure createClient is awaited if it's async
 
   try {
-    // Check for a product matching the slug
+    // 2. Check for a product matching the slug
     const { data: product } = await supabase
       .from('products')
       .select('*')
@@ -18,7 +19,7 @@ export async function GET(
 
     if (product) return NextResponse.json(product);
 
-    // If no product, check for items in a category
+    // 3. If no product, check for items in a category
     const { data: categoryItems } = await supabase
       .from('products')
       .select('*')
@@ -30,6 +31,7 @@ export async function GET(
 
     return NextResponse.json({ error: 'Not Found' }, { status: 404 });
   } catch (err) {
+    console.error('Slug API Error:', err);
     return NextResponse.json({ error: 'Server Error' }, { status: 500 });
   }
 }

@@ -1,9 +1,22 @@
-﻿import { createServerClient } from '@supabase/ssr'
+﻿import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function middleware(request: NextRequest) {
+  const pathname = request.nextUrl.pathname
+  const isLoginPage = pathname.startsWith('/login')
+  const isAdminPage = pathname.startsWith('/admin')
+
+  // 🚀 OPTIMIZATION: Early exit for public pages.
+  // If we aren't going to /admin or /login, don't initialize Supabase 
+  // or check the database. This makes public pages load instantly.
+  if (!isAdminPage && !isLoginPage) {
+    return NextResponse.next()
+  }
+
   let response = NextResponse.next({
-    request: { headers: request.headers },
+    request: {
+      headers: request.headers,
+    },
   })
 
   const supabase = createServerClient(
@@ -11,83 +24,78 @@ export async function middleware(request: NextRequest) {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        getAll() {
-          return request.cookies.getAll()
+        get(name: string) {
+          return request.cookies.get(name)?.value
         },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
-          response = NextResponse.next({ request })
-          cookiesToSet.forEach(({ name, value, options }) =>
-            response.cookies.set(name, value, options)
-          )
+        set(name: string, value: string, options: CookieOptions) {
+          request.cookies.set({ name, value, ...options })
+          response = NextResponse.next({
+            request: { headers: request.headers },
+          })
+          response.cookies.set({ name, value, ...options })
+        },
+        remove(name: string, options: CookieOptions) {
+          request.cookies.set({ name, value: '', ...options })
+          response = NextResponse.next({
+            request: { headers: request.headers },
+          })
+          response.cookies.set({ name, value: '', ...options })
         },
       },
     }
   )
 
-  // Get current user session
   const { data: { user } } = await supabase.auth.getUser()
+
+  // --- START PROTECTION LOGIC ---
   
-  // 1. ROBUST ROLE DETECTION
-  // Gabriel has 'employee' in user_metadata, Noel has 'super_admin' in app_metadata
-  const rawRole = user?.app_metadata?.role || user?.user_metadata?.role || 'customer';
-  const userRole = String(rawRole).toLowerCase();
-
-  const path = request.nextUrl.pathname
-
-  // --- 2. ACCESS CONFIGURATION ---
-  const adminRoles = ['super_admin', 'admin', 'it_admin', 'accounts', 'employee']
-  const isElevated = adminRoles.includes(userRole)
-
-  // Pages
-  const isAuthPage = path.startsWith('/login') || path.startsWith('/register')
-  const isAdminPage = path.startsWith('/admin')
-  const isCustomerDashboard = path.startsWith('/dashboard')
-  
-  // Protected areas
-  const isProtectedPage = isAdminPage || isCustomerDashboard || path.startsWith('/checkout')
-
-  // --- DEBUG LOGGING --- 
-  // This helps you see what's happening in your terminal
-  if (isProtectedPage && user) {
-    console.log(`MW Trace: ${user.email} | Role: ${userRole} | Path: ${path} | Allowed: ${isElevated}`);
+  // 1. If trying to reach Admin but NOT logged in
+  if (isAdminPage && !user) {
+    const redirectUrl = new URL('/login', request.url)
+    redirectUrl.searchParams.set('redirect', pathname)
+    return NextResponse.redirect(redirectUrl)
   }
 
-  // --- 3. LOGIC: GUESTS (Not logged in) ---
-  if (!user && isProtectedPage) {
-    const url = new URL('/login', request.url)
-    url.searchParams.set('redirect', path)
-    return NextResponse.redirect(url)
-  }
-
-  // --- 4. LOGIC: AUTHENTICATED USERS ---
+  // 2. Fetch Role if user exists
+  let userRole = null
   if (user) {
-    // SECURITY: Prevent regular customers from accessing /admin
-    if (isAdminPage && !isElevated) {
-      console.warn(`Unauthorized Access blocked for: ${user.email}`);
-      return NextResponse.redirect(new URL('/dashboard', request.url))
-    }
+    const { data: profile, error } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single()
 
-    // REDIRECT: Prevent logged-in users from seeing login/register pages
-    if (isAuthPage) {
-      const destination = isElevated ? '/admin' : '/dashboard'
-      return NextResponse.redirect(new URL(destination, request.url))
+    if (error) {
+      console.log('MIDDLEWARE DB ERROR:', error.message)
     }
+    userRole = profile?.role
+  }
+
+  const isNoel = user?.email === 'noel@ashamconstruction.co.ke'
+  const allowedRoles = ['super_admin', 'admin', 'it_admin', 'accounts', 'employee']
+  const hasAdminAccess = isNoel || (userRole && allowedRoles.includes(userRole.toLowerCase()))
+
+  // 3. ADMIN GATE
+  if (isAdminPage) {
+    if (hasAdminAccess) {
+      console.log('ADMIN ACCESS GRANTED for:', user?.email)
+      return response
+    }
+    console.log('ADMIN ACCESS DENIED for:', user?.email)
+    return NextResponse.redirect(new URL('/', request.url))
+  }
+
+  // 4. LOGIN PAGE REDIRECT (If already logged in)
+  if (isLoginPage && user) {
+    if (hasAdminAccess) {
+      return NextResponse.redirect(new URL('/admin', request.url))
+    }
+    return NextResponse.redirect(new URL('/', request.url))
   }
 
   return response
 }
 
 export const config = {
-  matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - api (API routes)
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - Public images (svg, png, etc)
-     */
-    '/((?!api/webhooks|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
-  ],
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|assets|api).*)'],
 }

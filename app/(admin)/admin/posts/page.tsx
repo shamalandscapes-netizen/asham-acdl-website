@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server';
+import { createClient } from '@/supabase/server';
 import Link from 'next/link';
 import { Edit, Plus, ExternalLink, Eye, EyeOff, BarChart3, Clock } from 'lucide-react';
 import DeletePostButton from '@/components/admin/DeletePostButton';
