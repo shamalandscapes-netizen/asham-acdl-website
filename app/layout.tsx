@@ -1,4 +1,4 @@
-﻿import { Plus_Jakarta_Sans } from "next/font/google";
+import { Plus_Jakarta_Sans } from "next/font/google";
 import { Metadata } from "next";
 import "./globals.css";
 import { Toaster } from 'react-hot-toast';
@@ -8,6 +8,7 @@ import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer"; 
 import ClientWrapper from "@/components/layout/ClientWrapper";
 import { Analytics } from "@vercel/analytics/next"
+import { SpeedInsights } from "@vercel/speed-insights/next"
 
 // Font configuration
 const plusJakarta = Plus_Jakarta_Sans({ 
@@ -208,6 +209,10 @@ export default function RootLayout({
 
         {/* Client-side handlers */}
         <ClientWrapper />
+
+        {/* Vercel Analytics and Speed Insights */}
+        <Analytics />
+        <SpeedInsights />
 
         {/* Schema.org markup for Kenyan architectural firm */}
         <script
