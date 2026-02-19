@@ -15,6 +15,8 @@ import {
   Package,
   DraftingCompass,
   Search,
+  User,
+  LogIn,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useUIStore } from '@/store/ui-store';
@@ -54,6 +56,7 @@ const NAV_LINKS = [
   },
   { name: 'Projects', href: '/projects' },
   { name: 'Store', href: '/products' },
+  { name: 'About Us', href: '/about' },
   { name: 'Journal', href: '/blog' },
   { name: 'Contact', href: '/contact' },
 ];
@@ -71,14 +74,17 @@ export default function Navbar() {
   const isActive = (href: string) =>
     pathname === href || pathname.startsWith(href + '/');
 
-  const isTransparentDesktop =
-    pathname === '/' && !isScrolled && !isOpen;
+  // Navbar is transparent only on home page and when not scrolled
+  const isTransparent = pathname === '/' && !isScrolled && !isOpen;
 
   const isAdmin = user?.email === 'jmuli758@gmail.com';
 
   /* -------------------- EFFECTS -------------------- */
   useEffect(() => {
-    const onScroll = () => setIsScrolled(window.scrollY > 40);
+    const onScroll = () => {
+      // Check if scrolled past hero section (adjust 100px to match your hero height)
+      setIsScrolled(window.scrollY > 100);
+    };
     window.addEventListener('scroll', onScroll);
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
@@ -105,60 +111,65 @@ export default function Navbar() {
       <nav
         className={`
           fixed top-0 inset-x-0 z-[100]
-          transition-[background-color,backdrop-filter] duration-500 ease-out
-          bg-white/90 backdrop-blur-xl
-          lg:${isTransparentDesktop ? 'bg-transparent' : ''}
-          border-b border-zinc-100
+          transition-all duration-500 ease-out
+          ${isTransparent 
+            ? 'bg-transparent backdrop-blur-none' 
+            : 'bg-white/95 backdrop-blur-xl shadow-lg shadow-black/5'
+          }
+          border-b ${isTransparent ? 'border-transparent' : 'border-zinc-100'}
           pt-[env(safe-area-inset-top)]
         `}
       >
         <div className="px-6 mx-auto max-w-7xl">
-          <div className="h-[72px] flex items-center justify-between">
+          <div className="h-[80px] flex items-center justify-between">
 
             {/* LOGO */}
             <Link href="/" className="flex items-center gap-4 group z-[101]">
-              <div className="relative w-10 h-10 transition-transform duration-500 group-hover:rotate-45">
+              <div className="relative w-12 h-12 transition-transform duration-500 group-hover:rotate-12">
                 <Image
                   src="/assets/images/logos/navbar icon.png"
                   alt="Asham Logo"
+                  sizes="48px"
                   fill
                   className="object-contain"
                 />
               </div>
               <div
-                className={`transition-colors ${
-                  isTransparentDesktop
+                className={`transition-colors duration-500 ${
+                  isTransparent
                     ? 'text-white'
                     : 'text-[#06392F]'
                 }`}
               >
-                <p className="text-xl font-black leading-none uppercase">
+                <p className="text-2xl font-black leading-none tracking-tighter uppercase">
                   Asham
                 </p>
-                <p className="text-[10px] font-bold uppercase tracking-[0.35em] opacity-60">
-                  Design & Build
+                <p className="text-[9px] font-bold uppercase tracking-[0.3em] opacity-60">
+                  Design & Construction
                 </p>
               </div>
             </Link>
 
             {/* DESKTOP NAV */}
-            <ul className="items-center hidden gap-10 lg:flex">
+            <ul className="items-center hidden gap-8 lg:flex">
               {NAV_LINKS.map((link) => (
                 <li key={link.name} className="relative group">
                   <Link
                     href={link.href}
                     className={`
-                      flex items-center gap-1
-                      text-xs font-black uppercase tracking-[0.25em]
-                      transition-colors
+                      flex items-center gap-1.5
+                      text-xs font-bold uppercase tracking-[0.2em]
+                      transition-all duration-300
+                      px-3 py-2 rounded-full
                       ${
                         isActive(link.href)
-                          ? 'text-[#C75B39]'
-                          : isTransparentDesktop
-                          ? 'text-white'
-                          : 'text-[#06392F]'
+                          ? isTransparent 
+                            ? 'text-white bg-white/10' 
+                            : 'text-[#C75B39] bg-[#C75B39]/10'
+                          : isTransparent
+                          ? 'text-white/90 hover:text-white hover:bg-white/10'
+                          : 'text-[#06392F]/80 hover:text-[#06392F] hover:bg-[#06392F]/5'
                       }
-                      hover:text-[#C75B39]
                     `}
                   >
                     {link.name}
@@ -170,29 +181,33 @@ export default function Navbar() {
                     )}
                   </Link>
 
-                  {/* DESKTOP DROPDOWN */}
+                  {/* DESKTOP DROPDOWN - Rounded corners */}
                   {link.subServices && (
-                    <div className="absolute invisible pt-8 transition-all duration-300 -translate-x-1/2 opacity-0 left-1/2 group-hover:opacity-100 group-hover:visible">
-                      <div className="w-[340px] bg-white/95 backdrop-blur-xl border border-zinc-100 rounded-3xl shadow-2xl p-2">
-                        {link.subServices.map((sub) => (
-                          <Link
-                            key={sub.name}
-                            href={sub.href}
-                            className="flex gap-4 px-5 py-4 rounded-2xl transition hover:bg-[#06392F] hover:text-white"
-                          >
-                            <div className="p-2 rounded-xl bg-zinc-50">
-                              {sub.icon}
-                            </div>
-                            <div>
-                              <p className="text-xs font-black tracking-widest uppercase">
-                                {sub.name}
-                              </p>
-                              <p className="text-[11px] opacity-60 mt-1">
-                                {sub.desc}
-                              </p>
-                            </div>
-                          </Link>
-                        ))}
+                    <div className="absolute invisible pt-6 transition-all duration-300 -translate-x-1/2 opacity-0 left-1/2 group-hover:opacity-100 group-hover:visible">
+                      <div className="w-[360px] bg-white backdrop-blur-xl border border-zinc-100 shadow-2xl rounded-3xl overflow-hidden">
+                        <div className="p-3">
+                          {link.subServices.map((sub) => (
+                            <Link
+                              key={sub.name}
+                              href={sub.href}
+                              className="flex gap-4 px-5 py-4 transition-all duration-300 rounded-2xl hover:bg-[#06392F] hover:text-white group/item"
+                            >
+                              <div className="p-2 rounded-xl bg-zinc-50 group-hover/item:bg-white/10">
+                                <div className="text-[#06392F] group-hover/item:text-white transition-colors">
+                                  {sub.icon}
+                                </div>
+                              </div>
+                              <div>
+                                <p className="text-xs font-black tracking-widest uppercase">
+                                  {sub.name}
+                                </p>
+                                <p className="text-[10px] opacity-60 mt-1 group-hover/item:opacity-80">
+                                  {sub.desc}
+                                </p>
+                              </div>
+                            </Link>
+                          ))}
+                        </div>
                       </div>
                     </div>
                   )}
@@ -200,46 +215,91 @@ export default function Navbar() {
               ))}
             </ul>
 
-            {/* ACTIONS */}
-            <div className="items-center hidden gap-5 lg:flex">
+            {/* ACTIONS - Rounded buttons */}
+            <div className="items-center hidden gap-3 lg:flex">
+              {/* Search button */}
               <button
                 onClick={toggleSearch}
-                className={`p-2 rounded-full transition hover:scale-110 hover:text-[#C75B39]
-                ${isTransparentDesktop ? 'text-white' : 'text-[#06392F]'}`}
+                className={`
+                  p-3 rounded-full transition-all duration-300 hover:scale-105
+                  ${
+                    isTransparent
+                      ? 'text-white hover:bg-white/10'
+                      : 'text-[#06392F] hover:bg-[#06392F]/5'
+                  }
+                  hover:text-[#C75B39] relative overflow-hidden group
+                `}
               >
-                <Search size={18} strokeWidth={2.5} />
+                <Search size={18} strokeWidth={2} />
               </button>
 
+              {/* Cart button */}
               <button
                 onClick={toggleCart}
-                className={`p-2 rounded-full transition hover:scale-110 hover:text-[#C75B39]
-                ${isTransparentDesktop ? 'text-white' : 'text-[#06392F]'}`}
+                className={`
+                  p-3 rounded-full transition-all duration-300 hover:scale-105
+                  ${
+                    isTransparent
+                      ? 'text-white hover:bg-white/10'
+                      : 'text-[#06392F] hover:bg-[#06392F]/5'
+                  }
+                  hover:text-[#C75B39] relative overflow-hidden group
+                `}
               >
-                <ShoppingBag size={18} strokeWidth={2.5} />
+                <ShoppingBag size={18} strokeWidth={2} />
               </button>
 
+              {/* Login/Account button */}
               <Link
                 href={isAdmin ? '/admin/posts' : user ? '/dashboard' : '/login'}
                 className={`
-                  px-7 py-3 rounded-full text-[10px] font-black uppercase tracking-[0.3em]
-                  transition shadow-lg
+                  relative overflow-hidden group
+                  px-7 py-3 text-xs font-black uppercase tracking-[0.2em]
+                  transition-all duration-500 hover:scale-105
+                  rounded-full
                   ${
-                    isTransparentDesktop
-                      ? 'bg-white text-[#06392F] hover:bg-[#C75B39] hover:text-white'
+                    isTransparent
+                      ? 'bg-white/10 text-white border border-white/20 hover:bg-white hover:text-[#06392F]'
                       : 'bg-[#06392F] text-white hover:bg-[#C75B39]'
                   }
                 `}
               >
-                {isAdmin ? 'Admin Portal' : user ? 'Account' : 'Login'}
+                <span className="relative z-10 flex items-center gap-2">
+                  {user ? (
+                    <>
+                      <User size={14} />
+                      {isAdmin ? 'Admin' : 'Account'}
+                    </>
+                  ) : (
+                    <>
+                      <LogIn size={14} />
+                      Login
+                    </>
+                  )}
+                </span>
+                <motion.div 
+                  className="absolute inset-0 bg-white"
+                  initial={{ x: '-100%' }}
+                  whileHover={{ x: 0 }}
+                  transition={{ duration: 0.3 }}
+                  style={{ mixBlendMode: 'overlay' }}
+                />
               </Link>
             </div>
 
             {/* MOBILE TOGGLE */}
             <button
               onClick={() => setIsOpen(true)}
-              className="lg:hidden p-2 text-[#06392F] z-[101]"
+              className={`
+                lg:hidden p-3 rounded-full transition-all duration-300
+                ${
+                  isTransparent
+                    ? 'text-white hover:bg-white/10'
+                    : 'text-[#06392F] hover:bg-[#06392F]/5'
+                }
+              `}
             >
-              <Menu size={28} />
+              <Menu size={24} />
             </button>
           </div>
         </div>
@@ -269,13 +329,15 @@ export default function Navbar() {
                 bg-white z-[99]
                 pt-[calc(env(safe-area-inset-top)+88px)]
                 px-8
+                rounded-l-3xl
+                shadow-2xl
               "
             >
               <button
                 onClick={() => setIsOpen(false)}
-                className="absolute top-6 right-6"
+                className="absolute top-6 right-6 p-2 rounded-full hover:bg-[#C75B39]/10 hover:text-[#C75B39] transition-colors"
               >
-                <X size={26} />
+                <X size={24} />
               </button>
 
               <nav className="space-y-8">
@@ -283,18 +345,18 @@ export default function Navbar() {
                   <div key={link.name}>
                     <Link
                       href={link.href}
-                      className="block text-2xl font-black uppercase text-[#06392F] hover:text-[#C75B39]"
+                      className="block text-2xl font-black uppercase text-[#06392F] hover:text-[#C75B39] transition-colors"
                     >
                       {link.name}
                     </Link>
 
                     {link.subServices && (
-                      <div className="pl-4 mt-3 ml-3 space-y-3 border-l border-zinc-200">
+                      <div className="pl-4 mt-3 ml-3 space-y-3 border-l-2 border-[#C75B39]/30">
                         {link.subServices.map((sub) => (
                           <Link
                             key={sub.name}
                             href={sub.href}
-                            className="block text-xs uppercase tracking-widest text-zinc-500 hover:text-[#06392F]"
+                            className="block text-xs uppercase tracking-widest text-zinc-500 hover:text-[#06392F] transition-colors"
                           >
                             {sub.name}
                           </Link>
@@ -305,13 +367,25 @@ export default function Navbar() {
                 ))}
               </nav>
 
-              <div className="mt-12">
+              <div className="mt-12 space-y-3">
+                {/* Mobile client portal button */}
                 <Link
                   href="/login"
-                  className="block text-center py-5 rounded-2xl bg-[#06392F] text-white font-black uppercase tracking-widest text-xs"
+                  className="block w-full text-center py-5 bg-[#06392F] text-white font-black uppercase tracking-widest text-xs rounded-2xl transition-all duration-300 hover:bg-[#C75B39]"
                 >
                   Client Portal
                 </Link>
+
+                {/* Mobile search button */}
+                <button
+                  onClick={() => {
+                    toggleSearch();
+                    setIsOpen(false);
+                  }}
+                  className="flex items-center justify-center w-full gap-2 py-5 border-2 border-[#06392F] text-[#06392F] font-black uppercase tracking-widest text-xs rounded-2xl transition-all duration-300 hover:border-[#C75B39] hover:text-[#C75B39]"
+                >
+                  <Search size={14} /> Search
+                </button>
               </div>
             </motion.aside>
           </>
