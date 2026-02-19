@@ -69,7 +69,7 @@ const projects: Project[] = [
     location: 'Malava, Kakamega',
     year: '2024',
     description: 'An elegant two-bedroom bungalow with pitched terracotta roof and natural stone cladding. Features a welcoming front porch and integrated single-car garage.',
-    image: '/assets/images/projects/tonny-bungalow.jpg',
+    image: '/assets/images/projects/tonny-bungalow.png',
     slug: 'tonny-muyale-bungalow',
     status: 'In Progress',
     client: 'Mr. Tonny Muyale',
