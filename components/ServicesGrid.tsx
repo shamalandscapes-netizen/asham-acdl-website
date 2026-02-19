@@ -30,7 +30,7 @@ const services: Service[] = [
     description: 'Mandatory NEMA-compliant assessments with a commitment to ecological responsibility and sustainable development.',
     highlight: 'NEMA Licensed',
     features: ['NEMA Compliance', 'Ecological Audits', 'Sustainability Planning', 'Waste Management', 'Biodiversity Protection'],
-    link: '/services/eia',
+    link: '/services/environmental-impact-assessment', // Fixed slug
     stats: [
       { value: '100+', label: 'Projects Approved' },
       { value: 'NEMA', label: 'Registered' }
@@ -42,7 +42,7 @@ const services: Service[] = [
     description: 'End-to-end construction project management with uncompromising focus on structural integrity and timeline adherence.',
     highlight: '25+ Years Experience',
     features: ['Structural Engineering', 'Project Management', 'Quality Control', 'Site Supervision', 'Health & Safety'],
-    link: '/services/construction',
+    link: '/services/general-construction', // Fixed slug
     stats: [
       { value: '250+', label: 'Projects Delivered' },
       { value: 'ISO', label: 'Certified' }
@@ -54,7 +54,7 @@ const services: Service[] = [
     description: 'Premium construction materials sourced directly from trusted manufacturers with rigorous quality assurance.',
     highlight: 'Direct From Mills',
     features: ['Cement & Concrete', 'Steel Products', 'Timber & Wood', 'Finishing Materials', 'Roofing Systems'],
-    link: '/products',
+    link: '/services/material-supply', // Fixed slug
     stats: [
       { value: '500+', label: 'Products' },
       { value: '24hr', label: 'Delivery' }
@@ -66,7 +66,7 @@ const services: Service[] = [
     description: 'Complete architectural design, 3D visualization, and planning solutions for modern living and working spaces.',
     highlight: 'Award-Winning Design',
     features: ['Building Design', '3D Visualization', 'Planning Permission', 'Interior Design', 'Landscape Design'],
-    link: '/services/architecture',
+    link: '/services/architectural-design', // Fixed slug
     stats: [
       { value: '15+', label: 'Design Awards' },
       { value: 'BORAQS', label: 'Registered' }
