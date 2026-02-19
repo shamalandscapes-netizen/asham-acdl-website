@@ -52,7 +52,7 @@ const projects: Project[] = [
     id: 2,
     title: 'Moureen Residence',
     category: 'Residential',
-    location: 'Nairobi, Kenya',
+    location: 'Kakamega, Kenya',
     year: '2024',
     description: 'A striking two-storey residence featuring natural stone blockwork with vibrant red and yellow trims. Maximizes daylighting through large window openings.',
     image: '/assets/images/projects/moureen-residence.jpg',

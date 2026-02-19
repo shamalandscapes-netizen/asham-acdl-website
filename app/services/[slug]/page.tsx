@@ -52,12 +52,12 @@ const SERVICES: Record<string, any> = {
       { title: 'Roofing & Finishes', desc: 'Weatherproofing and aesthetic completion' },
       { title: 'Final Handover', desc: 'Inspection, documentation, and key transfer' }
     ],
-    stats: { projects: '250+', experience: '15+ years', satisfaction: '98%' },
+    stats: { projects: '30+', experience: '7+ years', satisfaction: '98%' },
     relatedServices: ['architectural-design', 'project-management', 'material-supply'],
     testimonial: {
       quote: "Asham delivered our family home on time and within budget. The quality of workmanship exceeded our expectations.",
-      author: "Samuel Waswa",
-      project: "Mlolongo Maisonette"
+      author: "Benjamin Gikenyi Magare",
+      project: "Nakuru Residence"
     }
   },
 
@@ -126,7 +126,7 @@ const SERVICES: Record<string, any> = {
     ],
 
     stats: { 
-      projects: '120+', 
+      projects: '20+', 
       complianceRate: '100%', 
       sectors: '8+' 
     },
@@ -165,7 +165,7 @@ const SERVICES: Record<string, any> = {
       { title: 'Site Supervision', desc: 'Daily oversight and quality checks' },
       { title: 'Completion Docs', desc: 'As-built drawings and warranties' }
     ],
-    stats: { onBudget: '98%', onTime: '95%', clients: '150+' },
+    stats: { onBudget: '98%', onTime: '95%', clients: '70+' },
     relatedServices: ['general-construction', 'architectural-design', 'civil-engineering'],
     testimonial: {
       quote: "Having Asham manage our commercial project saved us months of delays and significant cost overruns.",
@@ -223,7 +223,7 @@ const SERVICES: Record<string, any> = {
       { title: 'Logistics', desc: 'Crane-equipped delivery trucks' },
       { title: 'Documentation', desc: 'Warranties and compliance certs' }
     ],
-    stats: { products: '500+', delivery: '24-48h', projects: '300+' },
+    stats: { products: '500+', delivery: '24-48h', projects: '50+' },
     relatedServices: ['general-construction', 'civil-engineering', 'project-management'],
     testimonial: {
       quote: "Having materials delivered on time kept our project on schedule. The quality was consistently excellent.",
@@ -252,7 +252,7 @@ const SERVICES: Record<string, any> = {
       { title: 'Construction', desc: 'Execution with quality control' },
       { title: 'Compliance', desc: 'Approvals and certifications' }
     ],
-    stats: { projects: '50+', engineers: '5', compliance: '100%' },
+    stats: { projects: '30+', engineers: '5', compliance: '100%' },
     relatedServices: ['general-construction', 'project-management', 'material-supply'],
     testimonial: {
       quote: "Their drainage solution solved our flooding issues permanently. Professional engineering at its best.",
@@ -286,7 +286,7 @@ const SERVICES: Record<string, any> = {
     testimonial: {
       quote: "Our garden has become the neighborhood showcase. The design perfectly complements our home's architecture.",
       author: "Moureen",
-      project: "Nairobi Residence"
+      project: "Malava Residence"
     }
   }
 };

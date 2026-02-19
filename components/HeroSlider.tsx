@@ -279,7 +279,7 @@ export default function HeroSlider() {
 
               {/* CTAs */}
               <div className="flex flex-col gap-4 pt-4 sm:flex-row">
-                <Link href="/consultation">
+                <Link href="/contact">
                   <motion.button
                     whileHover={{ scale: 1.02, backgroundColor: '#d16643' }}
                     whileTap={{ scale: 0.98 }}
@@ -290,7 +290,7 @@ export default function HeroSlider() {
                   </motion.button>
                 </Link>
 
-                <Link href="/capabilities">
+                <Link href="/projects">
                   <motion.button
                     whileHover={{ backgroundColor: 'rgba(255,255,255,0.1)', scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
@@ -309,11 +309,11 @@ export default function HeroSlider() {
                 transition={{ delay: 0.8 }}
                 className="flex items-center gap-4 pt-4 border-t border-white/10"
               >
-                <div className="flex -space-x-2">
+                <div className="flex -space-x-4">
                   {['AR', 'CN', 'EI'].map((initials, i) => (
                     <div
                       key={i}
-                      className="w-8 h-8 rounded-full bg-[#C75B39]/30 border-2 border-[#06392F] flex items-center justify-center text-[10px] font-medium text-white"
+                      className="w-12 h-12 rounded-full bg-[#C75B39]/30 border-2 border-[#06392F] flex items-center justify-center text-[10px] font-medium text-white"
                     >
                       {initials}
                     </div>
@@ -335,7 +335,7 @@ export default function HeroSlider() {
             key={slide.id}
             onClick={() => setCurrentSlide(idx)}
             className={`group relative w-12 h-1 rounded-full overflow-hidden transition-all duration-300 ${
-              idx === currentSlide ? 'bg-white/30' : 'bg-white/10 hover:bg-white/20'
+              idx === currentSlide ? 'bg-black/60' : 'bg-white/10 hover:bg-white/20'
             }`}
           >
             {idx === currentSlide && (
