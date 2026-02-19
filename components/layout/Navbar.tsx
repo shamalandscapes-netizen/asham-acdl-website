@@ -9,11 +9,6 @@ import {
   Menu,
   X,
   ShoppingBag,
-  ChevronDown,
-  Leaf,
-  HardHat,
-  Package,
-  DraftingCompass,
   Search,
   User,
   LogIn,
@@ -24,36 +19,7 @@ import { useUIStore } from '@/store/ui-store';
 /* -------------------- DATA -------------------- */
 const NAV_LINKS = [
   { name: 'Home', href: '/' },
-  {
-    name: 'Services',
-    href: '/services',
-    subServices: [
-      {
-        name: 'Environmental Assessment',
-        href: '/services/eia',
-        icon: <Leaf size={16} />,
-        desc: 'NEMA licensing & audits',
-      },
-      {
-        name: 'Construction Services',
-        href: '/services/construction',
-        icon: <HardHat size={16} />,
-        desc: 'Residential & Commercial',
-      },
-      {
-        name: 'Architectural Services',
-        href: '/services/architecture',
-        icon: <DraftingCompass size={16} />,
-        desc: 'Blueprints & 3D Renders',
-      },
-      {
-        name: 'Materials Supply',
-        href: '/products',
-        icon: <Package size={16} />,
-        desc: 'Quality building hardware',
-      },
-    ],
-  },
+  { name: 'Services', href: '/services' },
   { name: 'Projects', href: '/projects' },
   { name: 'Store', href: '/products' },
   { name: 'About Us', href: '/about' },
@@ -74,15 +40,13 @@ export default function Navbar() {
   const isActive = (href: string) =>
     pathname === href || pathname.startsWith(href + '/');
 
-  // Navbar is transparent only on home page and when not scrolled
   const isTransparent = pathname === '/' && !isScrolled && !isOpen;
 
-  const isAdmin = user?.email === 'jmuli758@gmail.com';
+  const isAdmin = user?.email === 'dappah865@gmail.com';
 
   /* -------------------- EFFECTS -------------------- */
   useEffect(() => {
     const onScroll = () => {
-      // Check if scrolled past hero section (adjust 100px to match your hero height)
       setIsScrolled(window.scrollY > 100);
     };
     window.addEventListener('scroll', onScroll);
@@ -112,9 +76,10 @@ export default function Navbar() {
         className={`
           fixed top-0 inset-x-0 z-[100]
           transition-all duration-500 ease-out
-          ${isTransparent 
-            ? 'bg-transparent backdrop-blur-none' 
-            : 'bg-white/95 backdrop-blur-xl shadow-lg shadow-black/5'
+          ${
+            isTransparent
+              ? 'bg-transparent backdrop-blur-none'
+              : 'bg-white/95 backdrop-blur-xl shadow-lg shadow-black/5'
           }
           border-b ${isTransparent ? 'border-transparent' : 'border-zinc-100'}
           pt-[env(safe-area-inset-top)]
@@ -122,7 +87,6 @@ export default function Navbar() {
       >
         <div className="px-6 mx-auto max-w-7xl">
           <div className="h-[80px] flex items-center justify-between">
-
             {/* LOGO */}
             <Link href="/" className="flex items-center gap-4 group z-[101]">
               <div className="relative w-12 h-12 transition-transform duration-500 group-hover:rotate-12">
@@ -136,9 +100,7 @@ export default function Navbar() {
               </div>
               <div
                 className={`transition-colors duration-500 ${
-                  isTransparent
-                    ? 'text-white'
-                    : 'text-[#06392F]'
+                  isTransparent ? 'text-white' : 'text-[#06392F]'
                 }`}
               >
                 <p className="text-2xl font-black leading-none tracking-tighter uppercase">
@@ -153,18 +115,18 @@ export default function Navbar() {
             {/* DESKTOP NAV */}
             <ul className="items-center hidden gap-8 lg:flex">
               {NAV_LINKS.map((link) => (
-                <li key={link.name} className="relative group">
+                <li key={link.name}>
                   <Link
                     href={link.href}
                     className={`
-                      flex items-center gap-1.5
+                      flex items-center
                       text-xs font-bold uppercase tracking-[0.2em]
                       transition-all duration-300
                       px-3 py-2 rounded-full
                       ${
                         isActive(link.href)
-                          ? isTransparent 
-                            ? 'text-white bg-white/10' 
+                          ? isTransparent
+                            ? 'text-white bg-white/10'
                             : 'text-[#C75B39] bg-[#C75B39]/10'
                           : isTransparent
                           ? 'text-white/90 hover:text-white hover:bg-white/10'
@@ -173,51 +135,14 @@ export default function Navbar() {
                     `}
                   >
                     {link.name}
-                    {link.subServices && (
-                      <ChevronDown
-                        size={12}
-                        className="transition-transform duration-300 group-hover:rotate-180"
-                      />
-                    )}
                   </Link>
-
-                  {/* DESKTOP DROPDOWN - Rounded corners */}
-                  {link.subServices && (
-                    <div className="absolute invisible pt-6 transition-all duration-300 -translate-x-1/2 opacity-0 left-1/2 group-hover:opacity-100 group-hover:visible">
-                      <div className="w-[360px] bg-white backdrop-blur-xl border border-zinc-100 shadow-2xl rounded-3xl overflow-hidden">
-                        <div className="p-3">
-                          {link.subServices.map((sub) => (
-                            <Link
-                              key={sub.name}
-                              href={sub.href}
-                              className="flex gap-4 px-5 py-4 transition-all duration-300 rounded-2xl hover:bg-[#06392F] hover:text-white group/item"
-                            >
-                              <div className="p-2 rounded-xl bg-zinc-50 group-hover/item:bg-white/10">
-                                <div className="text-[#06392F] group-hover/item:text-white transition-colors">
-                                  {sub.icon}
-                                </div>
-                              </div>
-                              <div>
-                                <p className="text-xs font-black tracking-widest uppercase">
-                                  {sub.name}
-                                </p>
-                                <p className="text-[10px] opacity-60 mt-1 group-hover/item:opacity-80">
-                                  {sub.desc}
-                                </p>
-                              </div>
-                            </Link>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  )}
                 </li>
               ))}
             </ul>
 
-            {/* ACTIONS - Rounded buttons */}
+            {/* ACTIONS */}
             <div className="items-center hidden gap-3 lg:flex">
-              {/* Search button */}
+              {/* Search */}
               <button
                 onClick={toggleSearch}
                 className={`
@@ -227,13 +152,13 @@ export default function Navbar() {
                       ? 'text-white hover:bg-white/10'
                       : 'text-[#06392F] hover:bg-[#06392F]/5'
                   }
-                  hover:text-[#C75B39] relative overflow-hidden group
+                  hover:text-[#C75B39]
                 `}
               >
                 <Search size={18} strokeWidth={2} />
               </button>
 
-              {/* Cart button */}
+              {/* Cart */}
               <button
                 onClick={toggleCart}
                 className={`
@@ -243,13 +168,13 @@ export default function Navbar() {
                       ? 'text-white hover:bg-white/10'
                       : 'text-[#06392F] hover:bg-[#06392F]/5'
                   }
-                  hover:text-[#C75B39] relative overflow-hidden group
+                  hover:text-[#C75B39]
                 `}
               >
                 <ShoppingBag size={18} strokeWidth={2} />
               </button>
 
-              {/* Login/Account button */}
+              {/* Account/Login */}
               <Link
                 href={isAdmin ? '/admin/posts' : user ? '/dashboard' : '/login'}
                 className={`
@@ -277,7 +202,7 @@ export default function Navbar() {
                     </>
                   )}
                 </span>
-                <motion.div 
+                <motion.div
                   className="absolute inset-0 bg-white"
                   initial={{ x: '-100%' }}
                   whileHover={{ x: 0 }}
@@ -309,7 +234,6 @@ export default function Navbar() {
       <AnimatePresence>
         {isOpen && (
           <>
-            {/* BACKDROP */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 0.4 }}
@@ -318,7 +242,6 @@ export default function Navbar() {
               onClick={() => setIsOpen(false)}
             />
 
-            {/* DRAWER */}
             <motion.aside
               initial={{ x: '100%' }}
               animate={{ x: 0 }}
@@ -328,9 +251,7 @@ export default function Navbar() {
                 fixed top-0 right-0 h-full w-[85%] max-w-sm
                 bg-white z-[99]
                 pt-[calc(env(safe-area-inset-top)+88px)]
-                px-8
-                rounded-l-3xl
-                shadow-2xl
+                px-8 rounded-l-3xl shadow-2xl
               "
             >
               <button
@@ -342,33 +263,17 @@ export default function Navbar() {
 
               <nav className="space-y-8">
                 {NAV_LINKS.map((link) => (
-                  <div key={link.name}>
-                    <Link
-                      href={link.href}
-                      className="block text-2xl font-black uppercase text-[#06392F] hover:text-[#C75B39] transition-colors"
-                    >
-                      {link.name}
-                    </Link>
-
-                    {link.subServices && (
-                      <div className="pl-4 mt-3 ml-3 space-y-3 border-l-2 border-[#C75B39]/30">
-                        {link.subServices.map((sub) => (
-                          <Link
-                            key={sub.name}
-                            href={sub.href}
-                            className="block text-xs uppercase tracking-widest text-zinc-500 hover:text-[#06392F] transition-colors"
-                          >
-                            {sub.name}
-                          </Link>
-                        ))}
-                      </div>
-                    )}
-                  </div>
+                  <Link
+                    key={link.name}
+                    href={link.href}
+                    className="block text-2xl font-black uppercase text-[#06392F] hover:text-[#C75B39] transition-colors"
+                  >
+                    {link.name}
+                  </Link>
                 ))}
               </nav>
 
               <div className="mt-12 space-y-3">
-                {/* Mobile client portal button */}
                 <Link
                   href="/login"
                   className="block w-full text-center py-5 bg-[#06392F] text-white font-black uppercase tracking-widest text-xs rounded-2xl transition-all duration-300 hover:bg-[#C75B39]"
@@ -376,7 +281,6 @@ export default function Navbar() {
                   Client Portal
                 </Link>
 
-                {/* Mobile search button */}
                 <button
                   onClick={() => {
                     toggleSearch();
