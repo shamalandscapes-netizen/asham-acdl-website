@@ -30,7 +30,7 @@ const ALL_PROJECTS = [
     slug: 'moureen-residence',
     title: 'Moureen Residence',
     category: 'Residential',
-    location: 'Nairobi, Kenya',
+    location: 'Kakamega, Kenya',
     image: '/assets/images/projects/moureen-residence.jpg',
     description: 'A striking two-storey residence featuring natural stone blockwork with vibrant red and yellow trims. The design maximizes daylighting through large window openings, reducing energy consumption while enhancing indoor comfort.',
     features: ['Natural stone cladding', 'Colorful architectural trims', 'Large daylight windows', 'Gable roof with shed projections'],

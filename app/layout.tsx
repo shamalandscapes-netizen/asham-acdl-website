@@ -8,6 +8,7 @@ import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer"; 
 import ClientWrapper from "@/components/layout/ClientWrapper";
 import { Analytics } from "@vercel/analytics/next"
+import { SpeedInsights } from "@vercel/speed-insights/next"
 
 // Font configuration
 const plusJakarta = Plus_Jakarta_Sans({ 
@@ -311,7 +312,14 @@ export default function RootLayout({
               "keywords": "architects in Nairobi, Kenyan architecture firm, residential architects Kenya, sustainable design Kenya"
             })
           }}
-        />
+        />        {/* Client-side handlers */}
+        <ClientWrapper />
+
+        {/* Vercel Analytics */}
+        <Analytics />
+
+        {/* Vercel Speed Insights */}
+        <SpeedInsights />
       </body>
     </html>
   );
