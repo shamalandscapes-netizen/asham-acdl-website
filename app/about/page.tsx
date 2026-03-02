@@ -318,7 +318,7 @@ export default function AboutPage() {
           style={{ opacity: heroOpacity, scale: heroScale }}
           className="absolute inset-0"
         >
-          <div className="absolute inset-0 bg-[url('/blueprint-pattern.png')] opacity-10" />
+          <div className="absolute inset-0 bg-[url('/blueprint-pattern.jpg')] opacity-10" />
           <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#06392F]" />
           
           {/* Animated Grid Lines */}

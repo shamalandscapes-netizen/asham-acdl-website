@@ -102,7 +102,7 @@ const FloatingParticles = () => {
 };
 
 const ProgressIndicator = ({ current, total }: { current: number; total: number }) => (
-  <div className="absolute z-30 flex items-center gap-3 top-12 left-12 text-white/80 mix-blend-difference">
+  <div className="absolute z-30 flex items-center gap-3 top-1/2 left-12 text-white/80 mix-blend-difference">
     <span className="font-mono text-xs font-light tracking-widest">{(current + 1).toString().padStart(2, '0')}</span>
     <div className="w-20 h-[2px] bg-white/20 rounded-full overflow-hidden">
       <motion.div

@@ -1,51 +1,106 @@
 // app/(admin)/admin/layout.tsx
 import { createClient } from '@/supabase/server';
 import { redirect } from 'next/navigation';
+import { Metadata } from 'next';
 import AdminUIWrapper from '@/components/admin/AdminUIWrapper';
 
-export default async function AdminLayout({ children }: { children: React.ReactNode }) {
+export const metadata: Metadata = {
+  title: 'Admin Dashboard',
+  description: 'Manage your store, orders, and content',
+};
+
+// Define allowed admin roles
+const ALLOWED_ROLES = ['super_admin', 'admin', 'it_admin', 'accounts', 'employee'] as const;
+type AllowedRole = typeof ALLOWED_ROLES[number];
+
+// Super admin override emails
+const SUPER_ADMIN_EMAILS = ['noel@ashamconstruction.co.ke'];
+
+// Simple profile interface - only include columns you actually have
+interface Profile {
+  role: string | null;
+  full_name: string | null;
+}
+
+export default async function AdminLayout({ 
+  children 
+}: { 
+  children: React.ReactNode 
+}) {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  
+  // 1. Check authentication
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
 
-  // 1. Authenticated?
-  if (!user) redirect('/login');
-
-  // 2. Fetch profile from DB 
-  // NOTE: This will likely return an error currently due to the Recursion Policy
-  const { data: profile, error: dbError } = await (supabase as any)
-    .from('profiles') 
-    .select('role, full_name')
-    .eq('id', user.id)
-    .single();
-
-  if (dbError) {
-    console.error("Database error in Admin Layout:", dbError.message);
+  if (authError || !user) {
+    console.error('Auth error in Admin Layout:', authError?.message);
+    redirect('/login?redirect=/admin');
   }
 
-  // 3. Robust Role Detection (Checks DB first, then Auth Metadata)
-  const metaRole = user.app_metadata?.role || user.user_metadata?.role;
-  const rawRole = (profile as any)?.role || metaRole;
-  
-  // Normalize the role to lowercase string
-  const activeRole = String(rawRole || 'customer').toLowerCase();
-  
-  const activeName = (profile as any)?.full_name || user.user_metadata?.full_name || 'Admin User';
+  // 2. Fetch user profile (only select columns that exist)
+  let profile: Profile | null = null;
 
-  // 4. Allowed Roles
-  const allowed = ['super_admin', 'admin', 'it_admin', 'accounts', 'employee'];
-  
-  // 5. FINAL ROLE GATE + NOEL OVERRIDE
-  const isNoel = user.email === 'noel@ashamconstruction.co.ke';
-  const isAllowed = allowed.includes(activeRole) || isNoel;
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('role, full_name')
+      .eq('id', user.id)
+      .single();
 
+    if (error) {
+      // Only log real errors, not "no rows" errors
+      if (error.code !== 'PGRST116') {
+        console.error('Database error fetching profile:', error.message);
+      }
+    } else if (data) {
+      profile = data;
+    }
+  } catch (err) {
+    console.error('Unexpected error fetching profile:', err);
+  }
+
+  // 3. Determine role with fallback hierarchy
+  const determineRole = (): AllowedRole | 'customer' => {
+    // Priority 1: Database profile role
+    if (profile?.role && ALLOWED_ROLES.includes(profile.role as AllowedRole)) {
+      return profile.role as AllowedRole;
+    }
+
+    // Priority 2: Auth metadata role
+    const metaRole = user.app_metadata?.role || user.user_metadata?.role;
+    if (metaRole && ALLOWED_ROLES.includes(metaRole as AllowedRole)) {
+      return metaRole as AllowedRole;
+    }
+
+    // Priority 3: Super admin email override
+    if (SUPER_ADMIN_EMAILS.includes(user.email || '')) {
+      return 'super_admin';
+    }
+
+    return 'customer';
+  };
+
+  const activeRole = determineRole();
+  const isAllowed = ALLOWED_ROLES.includes(activeRole as AllowedRole);
+
+  // 4. Access control check
   if (!isAllowed) {
-    console.error("Access Denied: User role is", activeRole);
-    redirect('/'); 
+    console.warn(`Access denied for user ${user.email} with role: ${activeRole}`);
+    redirect('/?error=unauthorized');
   }
 
-  // If you are Noel and the DB failed, we force the role to 'super_admin' 
-  // so the UI components don't break.
-  const finalRole = isNoel && !allowed.includes(activeRole) ? 'super_admin' : activeRole;
+  // 5. Determine display name
+  const activeName = 
+    profile?.full_name || 
+    user.user_metadata?.full_name || 
+    user.email?.split('@')[0] || 
+    'Admin User';
+
+  // 6. Force super_admin for specific emails if DB role is missing
+  const finalRole: AllowedRole = 
+    SUPER_ADMIN_EMAILS.includes(user.email || '') && !profile?.role 
+      ? 'super_admin' 
+      : (activeRole as AllowedRole);
 
   return (
     <AdminUIWrapper role={finalRole} userName={activeName}>
@@ -53,3 +108,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     </AdminUIWrapper>
   );
 }
+
+// Disable static generation for auth
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;

@@ -74,7 +74,7 @@ export default function Navbar() {
       {/* ================= NAVBAR ================= */}
       <nav
         className={`
-          fixed top-0 inset-x-0 z-[100]
+          fixed top50 inset-x-0 z-[100]
           transition-all duration-500 ease-out
           ${
             isTransparent

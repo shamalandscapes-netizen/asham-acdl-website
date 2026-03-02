@@ -23,10 +23,10 @@ export default function Home() {
     <main className="flex flex-col min-h-screen bg-[#FDF8F5]">
       
       {/* 1. Hero Section: High-impact visuals */}
-      <section className="relative">
+      <section className="relative z-20 -mt-16">
         <HeroSlider />
         {/* Subtle gradient transition to next section */}
-        <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-[#FDF8F5] to-transparent z-10" />
+        <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-[#1b1b1a] to-transparent z-5" />
       </section>
 
       {/* 2. Stats Counter: Immediate credibility through numbers */}
