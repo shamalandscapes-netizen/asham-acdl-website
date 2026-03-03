@@ -80,7 +80,7 @@ export const metadata: Metadata = {
     },
   },
   verification: {
-    google: 'google2729d6e3dad6ac74',
+    google: 'jO5MJziRM0BzXYTRNMMr23__8erRpvifVZ16BFQ4q94',
   },
   category: 'architecture',
   icons: {
