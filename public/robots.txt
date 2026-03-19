@@ -1,0 +1,9 @@
+# *
+User-agent: *
+Allow: /
+
+# Host
+Host: https://ashamconstruction.co.ke
+
+# Sitemaps
+Sitemap: https://ashamconstruction.co.ke/sitemap.xml

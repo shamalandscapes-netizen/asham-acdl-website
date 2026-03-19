@@ -38,7 +38,7 @@ export const metadata: Metadata = {
     "Maisonette design Nairobi"
   ],
   authors: [{ name: "Asham Design & Construction Ltd" }],
-  creator: "Asham ACDL",
+  creator: "Asham DCL",
   publisher: "Asham Design & Construction Ltd",
   formatDetection: {
     email: false,
@@ -49,7 +49,7 @@ export const metadata: Metadata = {
     title: "Asham Design & Construction Ltd",
     description: "Precision-built infrastructure anchored in innovation, craftsmanship, and legacy.",
     url: 'https://ashamconstruction.co.ke',
-    siteName: 'Asham ACDL',
+    siteName: 'Asham DCL',
     images: [
       {
         url: '/og-image.jpg',
@@ -219,7 +219,7 @@ export default function RootLayout({
               "@type": "ArchitectureFirm",
               "@id": "https://ashamconstruction.co.ke",
               "name": "Asham Design & Construction Ltd",
-              "alternateName": "Asham ACDL",
+              "alternateName": "Asham DCL",
               "description": "Precision-built infrastructure anchored in innovation, craftsmanship, and legacy.",
               "url": "https://ashamconstruction.co.ke",
               "logo": "https://ashamconstruction.co.ke/logo.png",
@@ -255,14 +255,14 @@ export default function RootLayout({
                   "telephone": "+254-735-184-292",
                   "contactType": "sales",
                   "availableLanguage": ["English", "Swahili"],
-                  "areaServed": "KE"
+                  "areaServed": ["KE", "UG", "TZ"]
                 }
               ],
               "email": "info@ashamconstruction.co.ke",
               "sameAs": [
-                "https://www.facebook.com/ashamconstruction",
-                "https://www.instagram.com/ashamdesign",
-                "https://www.linkedin.com/company/asham-construction"
+                "https://www.facebook.com/ashamdesignconstruction",
+                "https://www.instagram.com/ashamdesignconstruction",
+                "https://www.linkedin.com/company/asham-design-construction"
               ],
               "foundingDate": "2019",
               "founder": {

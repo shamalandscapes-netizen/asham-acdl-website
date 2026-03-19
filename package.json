@@ -33,6 +33,7 @@
     "jspdf-autotable": "^5.0.7",
     "lucide-react": "^0.556.0",
     "next": "^16.1.6",
+    "next-sitemap": "^4.2.3",
     "nodemailer": "^7.0.11",
     "pdfkit": "^0.17.2",
     "react": "18.2.0",
