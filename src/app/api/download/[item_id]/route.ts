@@ -61,7 +61,7 @@ export async function GET(
 
   // 5. Redirect to the signed URL
   // We extract the filename from the URL. 
-  // If your URL is '.../public/blueprints/file.pdf', this gets 'file.pdf'
+  // If your URL is '...public/blueprints/file.pdf', this gets 'file.pdf'
   const filePath = itemData.digital_file_url?.split('/').pop(); 
   
   if (!filePath) {

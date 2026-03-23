@@ -7,7 +7,7 @@ import {
   ArrowLeft, Package, User, Loader2, RefreshCcw, 
   Printer, CreditCard, Phone, MapPin, CheckCircle2, Mail, Send
 } from 'lucide-react';
-import PrintableInvoice from '../PrintableInvoice'; 
+import PrintableInvoice from '@/components/admin/orders/PrintableInvoice'; 
 import { sendInvoiceEmail } from '@/app/actions/email-invoice';
 import { toast } from 'react-hot-toast';
 
