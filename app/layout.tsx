@@ -1,4 +1,4 @@
-﻿import { Plus_Jakarta_Sans } from "next/font/google";
+import { Plus_Jakarta_Sans } from "next/font/google";
 import { Metadata } from "next";
 import "./globals.css";
 import { Toaster } from 'react-hot-toast';
@@ -209,6 +209,9 @@ export default function RootLayout({
 
         {/* Client-side handlers */}
         <ClientWrapper />
+
+        {/* Vercel Analytics */}
+        <Analytics />
 
         {/* Schema.org markup for Kenyan architectural firm */}
         <script
