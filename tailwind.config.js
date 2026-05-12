@@ -2,11 +2,10 @@
 module.exports = {
   darkMode: ["class"],
   content: [
-    './pages/**/*.{ts,tsx}',
-    './components/**/*.{ts,tsx}',
-    './app/**/*.{ts,tsx}',
-    './src/**/*.{ts,tsx}',
-    './lib/**/*.{ts,tsx}', 
+    "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
+    "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
+    "./src/features/**/*.{js,ts,jsx,tsx,mdx}",
+    "./src/lib/**/*.{js,ts,jsx,tsx,mdx}",
   ],
   theme: {
     container: {
@@ -75,6 +74,6 @@ module.exports = {
   },
   plugins: [
     require("tailwindcss-animate"),
-    require("@tailwindcss/typography"), // Added this to fix formatting/spacing
+    require("@tailwindcss/typography"),
   ],
-}
+};

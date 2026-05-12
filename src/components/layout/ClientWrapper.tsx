@@ -5,7 +5,7 @@ import { Toaster } from "react-hot-toast";
 import { useUIStore } from '@/store/ui-store';
 
 // ✅ Global UI Layers
-import CartDrawer from '@/components/cart/cart-drawer';
+import CartDrawer from '@/features/cart/components/cart/cart-drawer';
 import { QuickViewModal } from '@/components/products/quick-view-modal';
 import { SearchOverlay } from '@/components/search/search-overlay';
 import WhatsAppButton from "./WhatsAppButton"; // Ensure this path matches your file structure

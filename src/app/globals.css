@@ -2,56 +2,102 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --foreground-rgb: 0, 0, 0;
-  --background-start-rgb: 255, 255, 255;
-  --background-end-rgb: 255, 255, 255;
-  --asham-green: 6, 57, 47;
-  --asham-orange: 199, 91, 57;
-}
 
-@media (prefers-color-scheme: dark) {
+@layer base {
   :root {
-    --foreground-rgb: 255, 255, 255;
-    --background-start-rgb: 6, 57, 47;
-    --background-end-rgb: 6, 57, 47;
+
+    /* Core background */
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+
+    /* Cards */
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+
+    /* Popover */
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+
+    /* Primary brand (Asham green) */
+    --primary: 162 80% 20%; /* #06392F */
+    --primary-foreground: 0 0% 100%;
+
+    /* Secondary */
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 222.2 47% 11%;
+
+    /* Muted */
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 16% 47%;
+
+    /* Accent (Asham orange) */
+    --accent: 16 56% 49%; /* #C75B39 */
+    --accent-foreground: 0 0% 100%;
+
+    /* Danger */
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    /* Borders */
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 162 80% 20%;
+
+    /* Radius */
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 210 40% 98%;
+    --primary-foreground: 222.2 47% 11%;
+
+    --secondary: 217 32% 17%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 217 32% 17%;
+    --muted-foreground: 215 20% 65%;
+
+    --accent: 217 32% 17%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 63% 31%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 217 32% 17%;
+    --input: 217 32% 17%;
+    --ring: 212 27% 84%;
+  }
+
+  /* Global base styles */
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    min-height: 100vh;
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 }
 
-/* --- Base Styles --- */
-body {
-  color: rgb(var(--foreground-rgb));
-  background: linear-gradient(
-      to bottom,
-      transparent,
-      rgb(var(--background-end-rgb))
-    )
-    rgb(var(--background-start-rgb));
-  min-height: 100vh;
-  scroll-behavior: smooth;
-}
-
-/* --- Asham Custom Scrollbar --- */
-::-webkit-scrollbar {
-  width: 8px;
-}
-::-webkit-scrollbar-track {
-  background: #f1f1f1;
-}
-::-webkit-scrollbar-thumb {
-  background: #06392f;
-  border-radius: 10px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: #c75b39;
-}
-
 @layer utilities {
+  /* Text balance */
   .text-balance {
     text-wrap: balance;
   }
 
-  /* --- Premium Progress Bar Stripe Animation --- */
+  /* Stripe animation */
   @keyframes stripe {
     from {
       background-position: 1rem 0;
@@ -64,22 +110,56 @@ body {
   .animate-stripe {
     animation: stripe 1s linear infinite;
   }
+
+  /* Hide scrollbar */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
 }
 
-/* --- Print Protection & Styling --- */
+/* =========================================================
+   SCROLLBAR (Asham Styling)
+========================================================= */
+
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #06392f;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #c75b39;
+}
+
+/* =========================================================
+   PRINT STYLES
+========================================================= */
+
 @media print {
-  /* Hide interactive/unnecessary elements */
-  img, button, nav, footer, .no-print {
+  img,
+  button,
+  nav,
+  footer,
+  .no-print {
     display: none !important;
   }
-  
-  /* Ensure text is black and background is white for ink saving */
+
   body {
     background: white !important;
     color: black !important;
   }
 
-  /* Custom Print Warning (Optional - keep or remove based on preference) */
   .print-only-warning {
     display: block !important;
     text-align: center;

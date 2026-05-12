@@ -2,6 +2,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
+import { motion } from 'framer-motion';
 import {
   ShoppingCart,
   Package,
@@ -10,6 +11,9 @@ import {
   ArrowUpRight,
   Eye,
   Copy,
+  Ruler,
+  Weight,
+  CheckCircle2,
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { useCallback } from 'react';
@@ -25,19 +29,17 @@ interface ExtendedProduct extends Product {
   stock: number;
   original_price?: number;
   slug: string;
+  unit?: string;
+  specs?: string[];
 }
-
-/* ----------------------------- Utils ----------------------------- */
 
 const STORAGE_KEY = 'asham_recent_viewed';
 
 const trackRecentlyViewed = (product: ExtendedProduct) => {
   if (typeof window === 'undefined') return;
-
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
     const items: any[] = saved ? JSON.parse(saved) : [];
-
     const updated = [
       {
         id: product.id,
@@ -47,16 +49,13 @@ const trackRecentlyViewed = (product: ExtendedProduct) => {
         category: product.category,
         slug: product.slug,
       },
-      ...items.filter(i => i.id !== product.id),
+      ...items.filter((i) => i.id !== product.id),
     ].slice(0, 4);
-
     localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
   } catch {
     /* silent fail */
   }
 };
-
-/* --------------------------- Component ---------------------------- */
 
 export function ProductCard({ product }: { product: ExtendedProduct }) {
   const { addItem } = useCartStore();
@@ -66,18 +65,14 @@ export function ProductCard({ product }: { product: ExtendedProduct }) {
   const isOutOfStock = product.stock <= 0;
   const hasDiscount =
     product.original_price && product.original_price > product.price;
-
-  const isComparing = compareItems.some(i => i.id === product.id);
+  const isComparing = compareItems.some((i) => i.id === product.id);
 
   const discountPercentage = hasDiscount
     ? Math.round(
-        ((product.original_price! - product.price) /
-          product.original_price!) *
+        ((product.original_price! - product.price) / product.original_price!) *
           100
       )
     : 0;
-
-  /* ------------------------- Handlers -------------------------- */
 
   const handleProductClick = useCallback(() => {
     trackRecentlyViewed(product);
@@ -97,14 +92,11 @@ export function ProductCard({ product }: { product: ExtendedProduct }) {
     (e: React.MouseEvent) => {
       e.preventDefault();
       e.stopPropagation();
-
       if (compareItems.length >= 4 && !isComparing) {
         toast.error('You can compare up to 4 items.');
         return;
       }
-
       addToCompare(product);
-
       if (!isComparing) {
         toast.success(`${product.name} added to comparison`);
       }
@@ -116,12 +108,10 @@ export function ProductCard({ product }: { product: ExtendedProduct }) {
     (e: React.MouseEvent) => {
       e.preventDefault();
       e.stopPropagation();
-
       if (isOutOfStock) {
         toast.error('Out of stock');
         return;
       }
-
       addItem({
         id: product.id,
         name: product.name,
@@ -130,14 +120,11 @@ export function ProductCard({ product }: { product: ExtendedProduct }) {
         is_digital: product.is_digital || false,
         quantity: 1,
       });
-
       toast.success(`${product.name} added to cart`);
       openCart();
     },
     [addItem, openCart, product, isOutOfStock]
   );
-
-  /* --------------------------- Render ---------------------------- */
 
   return (
     <Link
@@ -145,14 +132,14 @@ export function ProductCard({ product }: { product: ExtendedProduct }) {
       onClick={handleProductClick}
       aria-disabled={isOutOfStock}
       className={cn(
-        'group relative block rounded-[2.5rem] border border-gray-100 bg-white transition-all duration-500',
-        'hover:-translate-y-2 hover:shadow-[0_20px_50px_rgba(6,57,47,0.15)]',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C75B39]',
-        isOutOfStock && 'opacity-70'
+        'group relative block bg-white rounded-2xl border border-[#06392F]/5 overflow-hidden',
+        'transition-all duration-500 hover:shadow-[0_12px_40px_-12px_rgba(6,57,47,0.2)]',
+        'hover:border-[#06392F]/10',
+        isOutOfStock && 'opacity-60'
       )}
     >
-      {/* IMAGE */}
-      <div className="relative m-2 aspect-square overflow-hidden rounded-[2rem] bg-gray-50">
+      {/* IMAGE AREA */}
+      <div className="relative aspect-square bg-[#F8F6F3] overflow-hidden">
         {product.image_url ? (
           <Image
             src={product.image_url}
@@ -161,98 +148,135 @@ export function ProductCard({ product }: { product: ExtendedProduct }) {
             priority={false}
             sizes="(max-width:768px) 100vw, (max-width:1200px) 50vw, 33vw"
             className={cn(
-              'object-cover transition-transform transition-transition-duration-[1200ms] ease-out',
-              'group-hover:scale-110',
+              'object-cover transition-transform duration-700 ease-out',
+              'group-hover:scale-105',
               isOutOfStock && 'grayscale'
             )}
           />
         ) : (
-          <div className="flex items-center justify-center w-full h-full text-gray-200">
-            <Package size={60} strokeWidth={1} />
+          <div className="flex items-center justify-center w-full h-full text-[#06392F]/10">
+            <Package size={48} strokeWidth={1} />
           </div>
         )}
 
-        {/* BADGES */}
-        <div className="absolute z-20 flex flex-col gap-2 left-4 top-4">
-          {hasDiscount && !isOutOfStock && (
-            <span className="flex items-center gap-1 rounded-full bg-[#C75B39] px-3 py-1.5 text-[10px] font-black text-white shadow-lg">
-              <Tag size={10} /> {discountPercentage}% OFF
+        {/* Overlay gradient on hover */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+
+        {/* Discount badge */}
+        {hasDiscount && !isOutOfStock && (
+          <div className="absolute top-4 left-4">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#C75B39] text-white text-[10px] font-bold uppercase tracking-wider rounded-full">
+              <Tag size={10} />
+              {discountPercentage}% Off
             </span>
-          )}
+          </div>
+        )}
 
-          {isOutOfStock && (
-            <span className="rounded-full bg-gray-800 px-3 py-1.5 text-[10px] font-black uppercase tracking-tight text-white">
-              Out of stock
+        {/* Out of stock badge */}
+        {isOutOfStock && (
+          <div className="absolute top-4 left-4">
+            <span className="px-3 py-1.5 bg-[#1a1a1a] text-white text-[10px] font-bold uppercase tracking-wider rounded-full">
+              Unavailable
             </span>
-          )}
-        </div>
+          </div>
+        )}
 
-        {/* ACTION ICONS */}
-        <div className="absolute z-20 flex flex-col gap-2 transition-all duration-300 translate-x-6 opacity-0 right-4 top-4 group-hover:opacity-100 group-hover:translate-x-0">
-          <IconButton
-            label="Quick view"
-            onClick={handleQuickView}
-          >
-            <Eye size={16} />
-          </IconButton>
-
-          <IconButton
+        {/* Action buttons - appear on hover */}
+        <div className="absolute top-4 right-4 flex flex-col gap-2 opacity-0 translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300">
+          <ActionButton label="Quick view" onClick={handleQuickView}>
+            <Eye size={14} />
+          </ActionButton>
+          <ActionButton
             label="Compare"
             active={isComparing}
             onClick={handleCompare}
           >
-            <Copy size={16} />
-          </IconButton>
+            <Copy size={14} />
+          </ActionButton>
         </div>
 
-        {/* QUICK ADD (DESKTOP) */}
+        {/* Quick add - bottom right */}
         {!isOutOfStock && (
-          <button
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
             onClick={handleAddToCart}
-            className="absolute bottom-4 right-4 z-20 hidden rounded-2xl bg-[#C75B39] p-4 text-white shadow-2xl transition-all hover:bg-[#06392F] md:flex opacity-0 translate-y-4 group-hover:opacity-100 group-hover:translate-y-0"
-            aria-label="Add to cart"
+            className="absolute bottom-4 right-4 z-10 flex items-center gap-2 px-4 py-2.5 bg-white/90 backdrop-blur-sm rounded-full text-[#06392F] text-xs font-semibold opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 shadow-lg hover:bg-[#06392F] hover:text-white"
           >
-            <Plus size={22} />
-          </button>
+            <Plus size={14} />
+            <span className="hidden sm:inline">Add</span>
+          </motion.button>
         )}
 
-        {/* HOVER INDICATOR */}
-        <div className="absolute inset-0 flex items-center justify-center transition-opacity opacity-0 pointer-events-none bg-black/5 group-hover:opacity-100">
-          <div className="p-3 transition-transform duration-500 scale-50 rounded-full shadow-xl bg-white/90 backdrop-blur-sm group-hover:scale-100">
-            <ArrowUpRight className="text-[#06392F]" size={20} />
+        {/* Stock indicator */}
+        {!isOutOfStock && product.stock <= 10 && (
+          <div className="absolute bottom-4 left-4">
+            <span className="text-[10px] font-medium text-[#C75B39] bg-white/90 backdrop-blur-sm px-2.5 py-1 rounded-full">
+              {product.stock} left
+            </span>
           </div>
-        </div>
+        )}
       </div>
 
       {/* CONTENT */}
-      <div className="p-6">
-        <span className="text-[9px] font-black tracking-[0.3em] text-[#C75B39]/70 uppercase">
-          {product.category}
-        </span>
+      <div className="p-5">
+        {/* Category + availability */}
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-[10px] font-semibold tracking-[0.2em] uppercase text-[#C75B39]/70">
+            {product.category}
+          </span>
+          {!isOutOfStock && (
+            <span className="flex items-center gap-1 text-[10px] text-[#06392F]/30">
+              <CheckCircle2 size={10} />
+              In Stock
+            </span>
+          )}
+        </div>
 
-        <h3 className="mt-1 truncate text-xl font-black text-[#06392F] transition-colors group-hover:text-[#C75B39]">
+        {/* Name */}
+        <h3 className="text-base font-semibold text-[#06392F] leading-snug group-hover:text-[#C75B39] transition-colors duration-300 line-clamp-2">
           {product.name}
         </h3>
 
-        <div className="flex items-end justify-between pt-4 mt-4 border-t border-gray-50">
+        {/* Specs row */}
+        {(product.unit || product.specs) && (
+          <div className="flex items-center gap-3 mt-3">
+            {product.unit && (
+              <span className="inline-flex items-center gap-1 text-[10px] text-[#06392F]/40 bg-[#F8F6F3] px-2 py-1 rounded-md">
+                <Ruler size={10} />
+                {product.unit}
+              </span>
+            )}
+            {product.specs?.[0] && (
+              <span className="inline-flex items-center gap-1 text-[10px] text-[#06392F]/40 bg-[#F8F6F3] px-2 py-1 rounded-md">
+                <Weight size={10} />
+                {product.specs[0]}
+              </span>
+            )}
+          </div>
+        )}
+
+        {/* Price + CTA */}
+        <div className="flex items-end justify-between mt-4 pt-4 border-t border-[#06392F]/5">
           <div>
             {hasDiscount && (
-              <span className="block text-xs font-bold text-gray-300 line-through">
+              <span className="block text-xs text-[#06392F]/20 line-through mb-0.5">
                 {formatCurrency(product.original_price!)}
               </span>
             )}
-            <span className="text-2xl font-black tracking-tight text-[#06392F]">
+            <span className="text-xl font-light text-[#06392F] tracking-tight">
               {formatCurrency(product.price)}
             </span>
           </div>
 
+          {/* Mobile cart button */}
           {!isOutOfStock && (
             <button
               onClick={handleAddToCart}
-              className="rounded-xl bg-[#06392F] p-3 text-white transition active:scale-90 md:hidden"
+              className="md:hidden flex items-center justify-center w-9 h-9 rounded-lg bg-[#06392F] text-white active:scale-90 transition-transform"
               aria-label="Add to cart"
             >
-              <ShoppingCart size={18} />
+              <ShoppingCart size={16} />
             </button>
           )}
         </div>
@@ -261,9 +285,8 @@ export function ProductCard({ product }: { product: ExtendedProduct }) {
   );
 }
 
-/* -------------------------- Sub UI -------------------------- */
-
-function IconButton({
+/* Sub-component */
+function ActionButton({
   children,
   onClick,
   active,
@@ -280,10 +303,10 @@ function IconButton({
       aria-label={label}
       onClick={onClick}
       className={cn(
-        'rounded-full p-3 shadow-xl transition-colors',
+        'w-8 h-8 rounded-full flex items-center justify-center shadow-md transition-all duration-200',
         active
           ? 'bg-[#C75B39] text-white'
-          : 'bg-white text-[#06392F] hover:bg-[#06392F] hover:text-white'
+          : 'bg-white/90 backdrop-blur-sm text-[#06392F] hover:bg-[#06392F] hover:text-white'
       )}
     >
       {children}

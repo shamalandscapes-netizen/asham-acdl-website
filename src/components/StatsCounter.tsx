@@ -2,285 +2,155 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { motion, useInView, useSpring, useTransform } from 'framer-motion';
-import {
-  Award,
-  Building2,
-  Users,
-  Calendar,
-  HardHat,
-  FileCheck,
-  ShieldCheck,
-  TrendingUp,
-  Leaf,
-  ClipboardList,
-  CheckCircle2,
-  Timer
-} from 'lucide-react';
+import { ArrowUpRight } from 'lucide-react';
+import Link from 'next/link';
 
 interface StatItem {
-  icon: React.ReactNode;
   value: number;
   label: string;
   suffix?: string;
   prefix?: string;
-  description: string;
-  audience: 'all' | 'architects' | 'contractors' | 'eia';
 }
 
 const stats: StatItem[] = [
   {
-    icon: <Calendar className="w-5 h-5" />,
     value: 10,
-    label: 'Years Experience',
     suffix: '+',
-    description: 'Decade of delivering complex projects across East Africa',
-    audience: 'all'
+    label: 'Years',
   },
   {
-    icon: <Building2 className="w-5 h-5" />,
     value: 127,
-    label: 'Projects Delivered',
     suffix: '+',
-    description: 'Residential, commercial & mixed-use developments',
-    audience: 'all'
+    label: 'Projects',
   },
   {
-    icon: <FileCheck className="w-5 h-5" />,
     value: 100,
-    label: 'Compliance Rate',
     suffix: '%',
-    description: 'KBC, NEMA & ISO standards adherence',
-    audience: 'all'
+    label: 'Compliance',
   },
   {
-    icon: <HardHat className="w-5 h-5" />,
     value: 0,
-    label: 'Safety Incidents',
-    suffix: '',
-    description: 'Zero lost-time accidents across all sites',
-    audience: 'contractors'
+    label: 'Incidents',
   },
-  {
-    icon: <ShieldCheck className="w-5 h-5" />,
-    value: 99,
-    label: 'Design Accuracy',
-    suffix: '%',
-    description: 'BIM-enabled precision in construction',
-    audience: 'architects'
-  },
-  {
-    icon: <Leaf className="w-5 h-5" />,
-    value: 45,
-    label: 'Carbon Reduction',
-    suffix: '%',
-    description: 'Average CO2 savings vs. conventional builds',
-    audience: 'eia'
-  },
-  {
-    icon: <Timer className="w-5 h-5" />,
-    value: 98,
-    label: 'On-Time Delivery',
-    suffix: '%',
-    description: 'Projects completed within scheduled timelines',
-    audience: 'contractors'
-  },
-  {
-    icon: <Award className="w-5 h-5" />,
-    value: 12,
-    label: 'Industry Awards',
-    suffix: '',
-    description: 'Recognition for design & sustainability excellence',
-    audience: 'all'
-  }
 ];
 
-// Smooth counter animation with spring physics
-const AnimatedCounter = ({ value, suffix = '', prefix = '' }: { value: number; suffix?: string; prefix?: string }) => {
-  const ref = useRef(null);
-  const isInView = useInView(ref, { once: true, margin: '-50px' });
-  const [hasAnimated, setHasAnimated] = useState(false);
+const AnimatedCounter = ({
+  value,
+  suffix = '',
+  prefix = '',
+}: {
+  value: number;
+  suffix?: string;
+  prefix?: string;
+}) => {
+  const ref = useRef<HTMLSpanElement>(null);
+  const isInView = useInView(ref, { once: true, margin: '-80px' });
 
-  const springValue = useSpring(0, {
+  const spring = useSpring(0, {
     stiffness: 50,
-    damping: 20,
-    duration: 2
+    damping: 30,
   });
 
-  const displayValue = useTransform(springValue, (latest) =>
-    Math.floor(latest)
-  );
-
-  const [displayNumber, setDisplayNumber] = useState(0);
+  const display = useTransform(spring, (v) => Math.floor(v));
+  const [num, setNum] = useState(0);
 
   useEffect(() => {
-    if (isInView && !hasAnimated) {
-      springValue.set(value);
-      setHasAnimated(true);
-    }
-  }, [isInView, value, springValue, hasAnimated]);
+    if (isInView) spring.set(value);
+  }, [isInView, value, spring]);
 
   useEffect(() => {
-    const unsubscribe = displayValue.on('change', (latest) => {
-      setDisplayNumber(latest);
-    });
-    return unsubscribe;
-  }, [displayValue]);
+    const unsub = display.on('change', setNum);
+    return () => unsub();
+  }, [display]);
 
   return (
     <span ref={ref} className="tabular-nums">
-      {prefix}{displayNumber}{suffix}
+      {prefix}
+      {num}
+      {suffix}
     </span>
   );
 };
 
-// Individual stat card component
-const StatCard = ({ stat, index }: { stat: StatItem; index: number }) => {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 30 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      transition={{
-        duration: 0.6,
-        delay: index * 0.08,
-        ease: [0.22, 1, 0.36, 1]
-      }}
-      viewport={{ once: true, margin: '-50px' }}
-      whileHover={{ y: -4, transition: { duration: 0.2 } }}
-      className="relative group"
-    >
-      {/* Hover glow effect */}
-      <div className="absolute inset-0 bg-gradient-to-br from-[#C75B39]/10 to-transparent rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 blur-xl" />
-
-      <div className="relative h-full p-6 bg-white border border-gray-100 rounded-2xl shadow-sm hover:shadow-lg hover:border-[#C75B39]/20 transition-all duration-300">
-        {/* Icon with animated background */}
-        <div className="relative mb-4">
-          <motion.div
-            className="inline-flex p-3 rounded-xl bg-gradient-to-br from-[#C75B39]/10 to-[#C75B39]/5 text-[#C75B39]"
-            whileHover={{ scale: 1.05, rotate: 2 }}
-            transition={{ duration: 0.2 }}
-          >
-            {stat.icon}
-          </motion.div>
-
-          {/* Audience badge */}
-          {stat.audience !== 'all' && (
-            <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-[#C75B39]" title={`Relevant for ${stat.audience}`} />
-          )}
-        </div>
-
-        {/* Value */}
-        <div className="text-3xl lg:text-4xl font-light text-[#06392F] tracking-tight mb-1">
-          <AnimatedCounter value={stat.value} suffix={stat.suffix} prefix={stat.prefix} />
-        </div>
-
-        {/* Label */}
-        <div className="text-sm font-medium text-[#06392F] mb-2">
-          {stat.label}
-        </div>
-
-        {/* Description */}
-        <p className="text-xs leading-relaxed text-gray-400">
-          {stat.description}
-        </p>
-
-        {/* Bottom accent line */}
-        <motion.div
-          className="absolute bottom-0 left-6 right-6 h-0.5 bg-gradient-to-r from-[#C75B39] to-[#C75B39]/30 rounded-full"
-          initial={{ scaleX: 0, opacity: 0 }}
-          whileInView={{ scaleX: 1, opacity: 1 }}
-          transition={{ duration: 0.8, delay: 0.3 + index * 0.1 }}
-          viewport={{ once: true }}
-          style={{ originX: 0 }}
-        />
-      </div>
-    </motion.div>
-  );
-};
-
-// Trust badges row
-const TrustBadges = () => {
-  const badges = [
-    { icon: <CheckCircle2 className="w-4 h-4" />, label: 'KBC Compliant' },
-    { icon: <ShieldCheck className="w-4 h-4" />, label: 'ISO 9001' },
-    { icon: <FileCheck className="w-4 h-4" />, label: 'NEMA Licensed' },
-    { icon: <TrendingUp className="w-4 h-4" />, label: 'BIM Ready' }
-  ];
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.6, delay: 0.4 }}
-      viewport={{ once: true }}
-      className="flex flex-wrap justify-center gap-3 mt-8"
-    >
-      {badges.map((badge, idx) => (
-        <span
-          key={idx}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-[#06392F]/5 rounded-full text-xs font-medium text-[#06392F]/70"
-        >
-          {badge.icon}
-          {badge.label}
-        </span>
-      ))}
-    </motion.div>
-  );
-};
-
 export default function StatsCounter() {
-  const containerRef = useRef<HTMLDivElement>(null);
+  const [hovered, setHovered] = useState<number | null>(null);
 
   return (
-    <section ref={containerRef} className="relative py-16 lg:py-24">
-      {/* Background decoration */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 left-1/4 w-96 h-96 bg-[#C75B39]/5 rounded-full blur-3xl" />
-        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-[#06392F]/5 rounded-full blur-3xl" />
-      </div>
-
-      <div className="relative px-6 mx-auto max-w-7xl lg:px-12">
-        {/* Section header */}
+    <section className="relative px-6 -mt-14 z-30">
+      <div className="mx-auto max-w-4xl">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
           viewport={{ once: true }}
-          className="mb-12 text-center"
+          transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+          className="relative rounded-2xl border border-[#06392F]/10 bg-white/80 backdrop-blur-xl shadow-[0_12px_40px_-10px_rgba(6,57,47,0.12)] overflow-hidden"
         >
-          <span className="inline-flex items-center gap-2 px-4 py-1.5 bg-[#C75B39]/10 rounded-full text-xs font-medium text-[#C75B39] uppercase tracking-wider mb-4">
-            <TrendingUp className="w-3 h-3" />
-            Track Record
-          </span>
-          <h2 className="text-3xl lg:text-4xl font-light text-[#06392F] mb-4">
-            Built on Proven Performance
-          </h2>
-          <p className="max-w-2xl mx-auto text-sm leading-relaxed text-gray-500 lg:text-base">
-            Numbers that matter to architects, contractors, and environmental professionals.
-            Our metrics reflect the standards you demand.
-          </p>
-        </motion.div>
+          {/* Top statement bar */}
+          <div className="relative px-6 py-4 lg:px-10 border-b border-[#06392F]/5">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="hidden sm:flex w-1.5 h-1.5 rounded-full bg-[#C75B39]" />
+                <p className="text-xs lg:text-sm text-[#06392F]/60 font-light tracking-wide">
+                  <span className="font-medium text-[#06392F]">Built on precision.</span>{' '}
+                  Verified delivery since 2015.
+                </p>
+              </div>
+              <Link href="/about">
+                <motion.div
+                  whileHover={{ x: 2, y: -2 }}
+                  className="hidden md:flex items-center gap-1 text-[10px] font-semibold tracking-[0.2em] uppercase text-[#C75B39] cursor-pointer shrink-0"
+                >
+                  Our Story
+                  <ArrowUpRight size={12} />
+                </motion.div>
+              </Link>
+            </div>
+          </div>
 
-        {/* Stats grid */}
-        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4 lg:gap-6">
-          {stats.map((stat, index) => (
-            <StatCard key={stat.label} stat={stat} index={index} />
-          ))}
-        </div>
+          {/* Four stat pills */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-[#06392F]/5">
+            {stats.map((stat, i) => (
+              <motion.div
+                key={stat.label}
+                onMouseEnter={() => setHovered(i)}
+                onMouseLeave={() => setHovered(null)}
+                initial={{ opacity: 0, y: 8 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.15 + i * 0.06, duration: 0.4 }}
+                className={`
+                  relative group bg-white py-5 px-4 cursor-default
+                  transition-colors duration-300
+                  ${hovered === i ? 'bg-[#FDF8F5]' : ''}
+                `}
+              >
+                {/* Hover top line */}
+                <motion.div
+                  className="absolute top-0 left-3 right-3 h-[2px] bg-[#C75B39] rounded-full"
+                  initial={{ scaleX: 0 }}
+                  animate={{ scaleX: hovered === i ? 1 : 0 }}
+                  transition={{ duration: 0.25 }}
+                  style={{ originX: 0.5 }}
+                />
 
-        {/* Trust badges */}
-        <TrustBadges />
+                <div className="flex flex-col items-center text-center">
+                  {/* Number */}
+                  <div className="text-2xl lg:text-3xl font-extralight tracking-tight text-[#06392F]">
+                    <AnimatedCounter
+                      value={stat.value}
+                      suffix={stat.suffix}
+                      prefix={stat.prefix}
+                    />
+                  </div>
 
-        {/* Bottom CTA */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.5 }}
-          viewport={{ once: true }}
-          className="mt-12 text-center"
-        >
-          <p className="text-sm text-gray-400">
-            Partner with a team that understands your industry requirements
-          </p>
+                  {/* Label */}
+                  <div className="mt-1 text-[10px] tracking-[0.15em] uppercase text-[#06392F]/40 font-medium">
+                    {stat.label}
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
         </motion.div>
       </div>
     </section>
