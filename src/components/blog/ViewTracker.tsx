@@ -22,7 +22,7 @@ export default function ViewTracker({
   trackInDev = false 
 }: ViewTrackerProps) {
   const trackedRef = useRef(false);
-  const timerRef = useRef<NodeJS.Timeout>();
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     // Skip in development unless explicitly enabled
@@ -52,7 +52,7 @@ export default function ViewTracker({
           await trackView();
         } else {
           // Reset timer if they haven't scrolled enough
-          timerRef.current = undefined;
+          timerRef.current = null;
         }
       }, timeThreshold);
     };
